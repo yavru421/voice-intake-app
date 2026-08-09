@@ -66,7 +66,7 @@ export function App() {
 
       // Initial AI Opening Phone Greeting
       const clientNameGreeting = client.name && client.name !== 'Valued Client' ? ` ${client.name}` : '';
-      const greetingText = `Welcome${clientNameGreeting}! This is the DondlingerGC AI Engineering Director on the line. Tell me about what you're looking to build—what's the core idea or problem you want us to solve?`;
+      const greetingText = `Welcome${clientNameGreeting}! This is DondlingerGC. We love helping people turn great ideas into real software. Tell me what you're dreaming up—what does your ideal app or tool do for you or your business?`;
       
       const greetingMsg: TranscriptMessage = {
         id: `ai-opening-${Date.now()}`,

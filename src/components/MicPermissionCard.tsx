@@ -45,10 +45,10 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
             <Mic size={36} color="#ffffff" />
           </div>
           <h1 className="gradient-heading" style={{ fontSize: '2.2rem', marginBottom: '8px', fontWeight: 700 }}>
-            DondlingerGC Intake
+            Bring Your Idea To Life
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5' }}>
-            Tell us about your project vision, features, budget, and target launch. Our AI Director will ask interactive questions to craft your complete engineering scope.
+            Have a vision for an app, business tool, or digital platform? You don't need technical specs or code details—just talk to us in plain English. We'll help turn your idea into reality.
           </p>
         </div>
 
