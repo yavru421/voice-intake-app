@@ -10,6 +10,7 @@ interface MicPermissionCardProps {
 export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSession, isLoading }) => {
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
+  const [personaVoice, setPersonaVoice] = useState('gideon');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +20,7 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
       email: `${(name || 'client').toLowerCase().replace(/\s+/g, '.')}@${(company || 'company').toLowerCase().replace(/\s+/g, '')}.com`,
       phone: '+1 (555) 000-0000',
       buyerType: 'client',
-      personaVoice: 'gideon'
+      personaVoice: personaVoice || 'gideon'
     });
   };
 
@@ -75,28 +76,29 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
           </div>
 
           <div>
-            <label htmlFor="client-company" style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '6px' }}>
-              Company / Business Name (Optional)
+            <label htmlFor="persona-voice" style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '6px' }}>
+              AI Engineering Director Persona Voice
             </label>
-            <div style={{ position: 'relative' }}>
-              <Building2 size={18} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '14px' }} />
-              <input
-                id="client-company"
-                type="text"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="e.g. Acme Contracting"
-                style={{
-                  width: '100%',
-                  padding: '12px 14px 12px 42px',
-                  borderRadius: '12px',
-                  background: 'rgba(0,0,0,0.35)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  color: '#fff',
-                  fontSize: '0.95rem'
-                }}
-              />
-            </div>
+            <select
+              id="persona-voice"
+              value={personaVoice}
+              onChange={(e) => setPersonaVoice(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                background: 'rgba(0,0,0,0.35)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: '#fff',
+                fontSize: '0.95rem',
+                outline: 'none'
+              }}
+            >
+              <option value="gideon" style={{ background: '#090d16', color: '#fff' }}>🎙️ Gideon (Crisp Baritone Male - Core AI Director)</option>
+              <option value="mercy" style={{ background: '#090d16', color: '#fff' }}>🎙️ Mercy (Articulate Midwest Female - Telemetry & Scoping)</option>
+              <option value="malachi" style={{ background: '#090d16', color: '#fff' }}>🎙️ Malachi (Deep Executive Male - Operator Advisor)</option>
+              <option value="santa_anna" style={{ background: '#090d16', color: '#fff' }}>🎙️ Santa Anna (Edge Cloud Female - Cloud Architecture)</option>
+            </select>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
