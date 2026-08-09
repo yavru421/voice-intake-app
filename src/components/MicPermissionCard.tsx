@@ -8,16 +8,16 @@ interface MicPermissionCardProps {
 }
 
 export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSession, isLoading }) => {
-  const [name, setName] = useState('John Dondlinger');
-  const [company, setCompany] = useState('Apex Digital');
+  const [name, setName] = useState('');
+  const [company, setCompany] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onStartSession({
-      name,
-      company,
-      email: `${name.toLowerCase().replace(/\s+/g, '.')}@${company.toLowerCase().replace(/\s+/g, '')}.com`,
-      phone: '+1 (555) 382-9102',
+      name: name || 'Valued Client',
+      company: company || 'Client Organization',
+      email: `${(name || 'client').toLowerCase().replace(/\s+/g, '.')}@${(company || 'company').toLowerCase().replace(/\s+/g, '')}.com`,
+      phone: '+1 (555) 000-0000',
       buyerType: 'client',
       personaVoice: 'gideon'
     });
@@ -41,24 +41,23 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
             <Mic size={36} color="#ffffff" />
           </div>
           <h1 className="gradient-heading" style={{ fontSize: '2.2rem', marginBottom: '8px', fontWeight: 700 }}>
-            VoiceIntake AI
+            DondlingerGC Intake
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5' }}>
-            Hands-free AI voice intake. Speak naturally to define your project scope, budget, and timeline.
+            Tell us about your project vision, features, budget, and target launch. Our AI Director will ask interactive questions to craft your complete engineering scope.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div>
             <label htmlFor="client-name" style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '6px' }}>
-              Your Full Name
+              Your Name (Optional)
             </label>
             <div style={{ position: 'relative' }}>
               <User size={18} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '14px' }} />
               <input
                 id="client-name"
                 type="text"
-                required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Sarah Jenkins"
@@ -77,14 +76,13 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
 
           <div>
             <label htmlFor="client-company" style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '6px' }}>
-              Company / Business Name
+              Company / Business Name (Optional)
             </label>
             <div style={{ position: 'relative' }}>
               <Building2 size={18} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '14px' }} />
               <input
                 id="client-company"
                 type="text"
-                required
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="e.g. Acme Contracting"

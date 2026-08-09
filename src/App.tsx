@@ -65,7 +65,8 @@ export function App() {
       ringtoneSynth.playCallAnswerChime();
 
       // Initial AI Opening Phone Greeting
-      const greetingText = `Hello ${client.name}! This is VoiceIntake AI on Cloudflare Workers edge. I'm connected on the line for ${client.company}. What is the primary goal or scope of your new project?`;
+      const clientNameGreeting = client.name && client.name !== 'Valued Client' ? ` ${client.name}` : '';
+      const greetingText = `Welcome${clientNameGreeting}! This is the DondlingerGC AI Engineering Director on the line. Tell me about what you're looking to build—what's the core idea or problem you want us to solve?`;
       
       const greetingMsg: TranscriptMessage = {
         id: `ai-opening-${Date.now()}`,
