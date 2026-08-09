@@ -101,32 +101,54 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="pulse-active"
-            style={{
-              marginTop: '10px',
-              width: '100%',
-              padding: '18px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: '1.1rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              boxShadow: '0 10px 32px rgba(99, 102, 241, 0.45)',
-              transition: 'all 0.2s ease',
-              border: 'none',
-              cursor: isLoading ? 'wait' : 'pointer'
-            }}
-          >
-            <Mic size={22} />
-            {isLoading ? 'Connecting to Voice AI...' : 'Start AI Voice Onboarding'}
-          </button>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="pulse-active"
+              style={{
+                padding: '16px',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 10px 25px rgba(99, 102, 241, 0.4)',
+                border: 'none',
+                cursor: isLoading ? 'wait' : 'pointer'
+              }}
+            >
+              <Mic size={20} />
+              {isLoading ? 'Connecting...' : 'Record Voice'}
+            </button>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              style={{
+                padding: '16px',
+                borderRadius: '16px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                cursor: isLoading ? 'wait' : 'pointer',
+                transition: 'background 0.2s ease'
+              }}
+            >
+              <Sparkles size={20} color="#06b6d4" />
+              Type & Submit
+            </button>
+          </div>
         </form>
 
         <div style={{

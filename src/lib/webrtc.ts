@@ -167,11 +167,22 @@ export class WebRTCVoiceClient {
         
         const voices = this.synthesis.getVoices();
         if (voices.length > 0) {
-          const matchedVoice = voices.find(v => 
-            (personaVoice === 'mercy' || personaVoice === 'santa_anna') 
-              ? v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Google US English')
-              : v.name.includes('Male') || v.name.includes('David') || v.name.includes('Natural') || v.name.includes('Google')
-          ) || voices[0];
+          const isFemalePersona = personaVoice === 'mercy' || personaVoice === 'santa_anna';
+          
+          // Rank premium Natural / Neural voices first
+          const matchedVoice = voices.find(v => {
+            const name = v.name.toLowerCase();
+            const isNatural = name.includes('natural') || name.includes('online') || name.includes('neural') || name.includes('premium') || name.includes('google');
+            const matchesGender = isFemalePersona 
+              ? (name.includes('female') || name.includes('jenny') || name.includes('aria') || name.includes('samantha') || name.includes('zira'))
+              : (name.includes('male') || name.includes('guy') || name.includes('ryan') || name.includes('george') || name.includes('david'));
+            return isNatural && matchesGender;
+          }) || voices.find(v => {
+            const name = v.name.toLowerCase();
+            return isFemalePersona 
+              ? (name.includes('female') || name.includes('jenny') || name.includes('aria') || name.includes('samantha'))
+              : (name.includes('male') || name.includes('guy') || name.includes('ryan') || name.includes('david'));
+          }) || voices.find(v => v.lang.startsWith('en')) || voices[0];
 
           if (matchedVoice) {
             utterance.voice = matchedVoice;

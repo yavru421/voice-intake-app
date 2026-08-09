@@ -33,6 +33,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   event.respondWith(
-    caches.match(event.request).then((response) => response || fetch(event.request))
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request).catch((err) => {
+        // Silently swallow fetch failures for external analytics/beacon endpoints blocked by client
+        if (event.request.url.includes('cloudflareinsights.com') || event.request.url.includes('beacon')) {
+          return new Response('', { status: 204, statusText: 'No Content' });
+        }
+        throw err;
+      });
+    })
   );
 });
