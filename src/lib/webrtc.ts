@@ -76,13 +76,6 @@ export class WebRTCVoiceClient {
       }
 
       if (finalTranscript.trim().length > 0) {
-        const userMsg: TranscriptMessage = {
-          id: `msg-${Date.now()}`,
-          speaker: 'user',
-          text: finalTranscript.trim(),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        this.options.onTranscript(userMsg);
         this.sendToWorkerAI(finalTranscript.trim());
       }
     };
@@ -104,17 +97,18 @@ export class WebRTCVoiceClient {
     this.recognition.start();
   }
 
-  public async sendToWorkerAI(userPrompt: string, personaVoice: string = 'gideon'): Promise<void> {
+  public async sendToWorkerAI(userPrompt: string, personaVoice: string = 'gideon', skipUserTranscript: boolean = false): Promise<void> {
     this.options.onStateChange('speaking');
     
-    // Log user transcript message if not already added
-    const userMsg: TranscriptMessage = {
-      id: `msg-${Date.now()}`,
-      speaker: 'user',
-      text: userPrompt,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    this.options.onTranscript(userMsg);
+    if (!skipUserTranscript) {
+      const userMsg: TranscriptMessage = {
+        id: `msg-${Date.now()}`,
+        speaker: 'user',
+        text: userPrompt,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      this.options.onTranscript(userMsg);
+    }
 
     try {
       // Call Cloudflare Worker AI Edge Endpoint or Local Worker Endpoint
@@ -129,7 +123,6 @@ export class WebRTCVoiceClient {
         const data = await response.json();
         replyText = data.reply;
       } else {
-        // High quality simulated AI response for onboarding intake demo
         replyText = this.generateFallbackAIResponse(userPrompt);
       }
 
@@ -153,13 +146,7 @@ export class WebRTCVoiceClient {
     // Load Client-Side WebAssembly Voice Preset (.npy)
     this.wasmEngine.synthesizeText(text, personaVoice);
 
-    // Attempt local SpeechApp WASAPI audio transport server
-    fetch('/api/speak', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice: personaVoice })
-    }).catch(() => {
-      // Fallback to browser SpeechSynthesis API
+    const playBrowserTTS = () => {
       if (!this.synthesis) return;
       try {
         this.synthesis.cancel();
@@ -179,7 +166,21 @@ export class WebRTCVoiceClient {
       } catch (e) {
         console.warn('SpeechSynthesis execution warning:', e);
       }
-    });
+    };
+
+    fetch('/api/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice: personaVoice })
+    })
+      .then((res) => {
+        if (!res.ok) {
+          playBrowserTTS();
+        }
+      })
+      .catch(() => {
+        playBrowserTTS();
+      });
   }
 
   private generateFallbackAIResponse(prompt: string): string {
