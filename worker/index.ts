@@ -1,6 +1,7 @@
 export interface Env {
   AI: any;
   DB: any;
+  ASSETS: any;
 }
 
 export default {
@@ -74,18 +75,12 @@ export default {
         });
       }
 
-      // Serve full VoiceIntake PWA application from Cloudflare Pages
-      const pagesTarget = new URL(url.pathname + url.search, 'https://master.voice-intake-pwa.pages.dev');
-      const pageRes = await fetch(pagesTarget.toString());
-      
-      const newHeaders = new Headers(pageRes.headers);
-      newHeaders.set('Access-Control-Allow-Origin', '*');
+      // Serve PWA frontend static assets directly from Cloudflare Worker ASSETS binding
+      if (env.ASSETS) {
+        return await env.ASSETS.fetch(request);
+      }
 
-      return new Response(pageRes.body, {
-        status: pageRes.status,
-        statusText: pageRes.statusText,
-        headers: newHeaders
-      });
+      return new Response("VoiceIntake Worker Active", { status: 200 });
     } catch (err: any) {
       return new Response(JSON.stringify({ error: err.message }), {
         status: 500,
