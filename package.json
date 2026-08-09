@@ -7,13 +7,13 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "worker:dev": "wrangler dev worker/index.ts",
-    "worker:deploy": "wrangler deploy worker/index.ts"
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "npm run build && node scratch/clean_wasm.cjs && wrangler deploy",
+    "deploy": "npm run build && node scratch/clean_wasm.cjs && wrangler deploy"
   },
   "dependencies": {
     "jspdf": "^2.5.1",
     "lucide-react": "^0.344.0",
-    "onnxruntime-web": "^1.27.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
