@@ -20,7 +20,7 @@ export default {
 
     try {
       if (url.pathname === '/api/ai-chat' && request.method === 'POST') {
-        const body: { prompt: string } = await request.json();
+        const body: { prompt: string; personaVoice?: string } = await request.json();
         
         let aiReply = "";
 
@@ -29,7 +29,7 @@ export default {
             messages: [
               {
                 role: 'system',
-                content: 'You are VoiceIntake AI, an empathetic, sub-200ms real-time voice onboarding assistant for contractors, agencies, and high-ticket freelancers. Keep responses under 2 sentences, clear, professional, and conversational.'
+                content: `You are VoiceIntake AI (${body.personaVoice || 'gideon'} persona), an empathetic, sub-200ms real-time voice onboarding assistant for contractors, agencies, and high-ticket freelancers. Keep responses under 2 sentences, clear, professional, and conversational.`
               },
               { role: 'user', content: body.prompt }
             ]
@@ -74,8 +74,17 @@ export default {
         });
       }
 
-      return new Response(JSON.stringify({ status: 'VoiceIntake Worker Operational', timestamp: new Date().toISOString() }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      // Serve full VoiceIntake PWA application from Cloudflare Pages
+      const pagesTarget = new URL(url.pathname + url.search, 'https://master.voice-intake-pwa.pages.dev');
+      const pageRes = await fetch(pagesTarget.toString());
+      
+      const newHeaders = new Headers(pageRes.headers);
+      newHeaders.set('Access-Control-Allow-Origin', '*');
+
+      return new Response(pageRes.body, {
+        status: pageRes.status,
+        statusText: pageRes.statusText,
+        headers: newHeaders
       });
     } catch (err: any) {
       return new Response(JSON.stringify({ error: err.message }), {
