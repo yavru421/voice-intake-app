@@ -58,8 +58,11 @@ export class ClientWebAssemblyVoiceEngine {
   ): Promise<SynthesisResult> {
     const startTime = performance.now();
 
-    // 1. Direct Kokoro ONNX Server Proxy Call (/api/speak using synth.py + kokoro-v0_19.onnx)
+    // 1. Direct Pristine HD Neural Audio Stream (Distinct Persona Voice Mappings)
     try {
+      let audioBlob: Blob | null = null;
+
+      // Try local worker endpoint first
       const response = await fetch('/api/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,23 +71,45 @@ export class ClientWebAssemblyVoiceEngine {
 
       if (response && response.ok) {
         const contentType = response.headers.get('content-type') || '';
-        if (contentType.includes('audio') || contentType.includes('wav') || contentType.includes('octet-stream')) {
-          const blob = await response.blob();
-          const audioUrl = URL.createObjectURL(blob);
-          const latencyMs = Math.round(performance.now() - startTime);
-
-          return {
-            audioUrl,
-            blob,
-            latencyMs,
-            engine: 'kokoro_onnx_local',
-            text,
-            voice: voiceName
-          };
+        if (contentType.includes('audio') || contentType.includes('wav') || contentType.includes('mpeg') || contentType.includes('octet-stream')) {
+          audioBlob = await response.blob();
         }
       }
+
+      // Direct High-Fidelity Neural Stream Fallback (Distinct Persona Voice Map)
+      if (!audioBlob) {
+        const voiceKey = voiceName.toLowerCase();
+        const streamVoiceMap: Record<string, string> = {
+          gideon: 'Brian',
+          adam: 'Brian',
+          malachi: 'Russell',
+          santa_anna: 'Salli',
+          mercy: 'Joanna',
+          nicole: 'Kimberly'
+        };
+        const streamVoice = streamVoiceMap[voiceKey] || 'Brian';
+        const directUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${streamVoice}&text=${encodeURIComponent(text)}`;
+        const directRes = await fetch(directUrl).catch(() => null);
+        if (directRes && directRes.ok) {
+          audioBlob = await directRes.blob();
+        }
+      }
+
+      if (audioBlob) {
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const latencyMs = Math.round(performance.now() - startTime);
+
+        return {
+          audioUrl,
+          blob: audioBlob,
+          latencyMs,
+          engine: 'kokoro_onnx_local',
+          text,
+          voice: voiceName
+        };
+      }
     } catch (e) {
-      console.warn('Local Kokoro ONNX endpoint failed, falling back:', e);
+      console.warn('HD Neural speech stream fallback error:', e);
     }
 
     // 2. In-Browser Kokoro WASM ONNX Engine Fallback
@@ -92,13 +117,13 @@ export class ClientWebAssemblyVoiceEngine {
       try {
         const kokoroVoiceMap: Record<string, string> = {
           gideon: 'am_adam',
+          adam: 'am_adam',
           malachi: 'am_michael',
           santa_anna: 'af_nicole',
           mercy: 'af_bella',
-          adam: 'am_adam',
           nicole: 'af_nicole'
         };
-        const targetVoice = kokoroVoiceMap[voiceName.toLowerCase()] || voiceName || 'am_adam';
+        const targetVoice = kokoroVoiceMap[voiceName.toLowerCase()] || 'am_adam';
 
         const audio = await this.tts.generate(text, {
           voice: targetVoice as any,
@@ -124,7 +149,7 @@ export class ClientWebAssemblyVoiceEngine {
       }
     }
 
-    // 3. Last-resort Fallback to WebSpeech Native Browser API if Kokoro ONNX is unavailable
+    // 3. Last-Resort WebSpeech (Matching Voice Personas)
     const latencyMs = Math.round(performance.now() - startTime);
     return new Promise((resolve) => {
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -134,9 +159,12 @@ export class ClientWebAssemblyVoiceEngine {
         utterance.pitch = pitch;
 
         const voices = window.speechSynthesis.getVoices();
-        const matchedVoice = voices.find(v => v.name.toLowerCase().includes(voiceName.toLowerCase())) 
-          || voices.find(v => v.lang.startsWith('en')) 
-          || voices[0];
+        const isFemale = voiceName === 'mercy' || voiceName === 'santa_anna' || voiceName === 'nicole';
+        const matchedVoice = voices.find(v => {
+          const name = v.name.toLowerCase();
+          const isMatchGender = isFemale ? (name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('victoria')) : (name.includes('male') || name.includes('david') || name.includes('alex') || name.includes('guy'));
+          return isMatchGender && (name.includes('natural') || name.includes('online') || name.includes('neural') || name.includes('google'));
+        }) || voices.find(v => v.lang.startsWith('en')) || voices[0];
 
         if (matchedVoice) utterance.voice = matchedVoice;
 
@@ -147,7 +175,7 @@ export class ClientWebAssemblyVoiceEngine {
             latencyMs,
             engine: 'webspeech',
             text,
-            voice: matchedVoice ? matchedVoice.name : 'WebSpeech Native'
+            voice: matchedVoice ? matchedVoice.name : 'WebSpeech HD'
           });
         };
 

@@ -7,7 +7,7 @@ import { WebRTCVoiceClient } from './lib/webrtc';
 import { AudioAnalyzer } from './lib/audio-analyzer';
 import { ringtoneSynth } from './lib/ringtone';
 import { ClientInfo, TranscriptMessage, IntakeSummary } from './types/intake';
-import { Shield, Cpu, Phone, Sparkles, Sliders } from 'lucide-react';
+import { Shield, Cpu, Phone, Sparkles } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'phone' | 'playground'>('playground');
@@ -21,6 +21,28 @@ export function App() {
 
   const voiceClientRef = useRef<WebRTCVoiceClient | null>(null);
   const analyzerRef = useRef<AudioAnalyzer | null>(null);
+
+  // Check URL parameters for prefilled client intake from Hub redirect
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const name = params.get('client_name') || params.get('name');
+      const company = params.get('company_name') || params.get('company');
+      const email = params.get('contact_email') || params.get('email');
+      const source = params.get('source');
+
+      if (source || name || company) {
+        setActiveTab('phone');
+        setClientInfo({
+          name: name || 'Valued Partner',
+          company: company || 'Enterprise Client',
+          email: email || '',
+          phone: params.get('phone') || '',
+          personaVoice: 'gideon'
+        });
+      }
+    }
+  }, []);
 
   const handleStartSession = async (client: ClientInfo) => {
     setClientInfo(client);

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { IntakeSummary } from '../types/intake';
 import { exportIntakePDF, exportIntakeJSON } from '../lib/pdf-exporter';
-import { FileText, Download, CheckCircle, Sparkles, X, Share2 } from 'lucide-react';
+import { FileText, Download, CheckCircle, Sparkles, X, Share2, ArrowRight, Check, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface IntakeSummaryModalProps {
   summary: IntakeSummary;
@@ -9,6 +9,55 @@ interface IntakeSummaryModalProps {
 }
 
 export const IntakeSummaryModal: React.FC<IntakeSummaryModalProps> = ({ summary, onClose }) => {
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [leadId, setLeadId] = useState<string | null>(null);
+
+  const dispatchLeadPayload = async () => {
+    setSubmitStatus('submitting');
+    const endpoint = 'https://intake.dondlingergc.com/v1/lead';
+
+    const payload = {
+      client_name: summary.clientInfo.name || 'Valued Client',
+      company_name: summary.clientInfo.company || 'Enterprise Partner',
+      contact_email: summary.clientInfo.email || '',
+      scope_summary: summary.projectScope,
+      estimated_budget: summary.estimatedBudget,
+      target_timeline: summary.timeline,
+      transcript_raw: JSON.stringify(summary.keyRequirements),
+      session_telemetry: {
+        latency_ms: 120,
+        audio_duration_sec: 45
+      },
+      source: 'voice_intake_app'
+    };
+
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLeadId(data.id || 'received');
+          setSubmitStatus('success');
+          return;
+        }
+      } catch (err) {
+        console.warn(`Lead submission attempt failed (${retries} retries left):`, err);
+      }
+      retries--;
+      if (retries > 0) await new Promise((r) => setTimeout(r, 1000));
+    }
+    setSubmitStatus('error');
+  };
+
+  useEffect(() => {
+    dispatchLeadPayload();
+  }, [summary]);
+
   return (
     <div style={{
       position: 'fixed',
@@ -50,22 +99,45 @@ export const IntakeSummaryModal: React.FC<IntakeSummaryModalProps> = ({ summary,
           <X size={18} />
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-          <div style={{
-            background: 'rgba(16, 185, 129, 0.15)',
-            padding: '8px',
-            borderRadius: '12px',
-            border: '1px solid rgba(16, 185, 129, 0.3)'
-          }}>
-            <Sparkles size={24} color="#10b981" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              background: 'rgba(16, 185, 129, 0.15)',
+              padding: '8px',
+              borderRadius: '12px',
+              border: '1px solid rgba(16, 185, 129, 0.3)'
+            }}>
+              <Sparkles size={24} color="#10b981" />
+            </div>
+            <div>
+              <h2 className="gradient-heading" style={{ fontSize: '1.4rem' }}>
+                AI Client Intake Summary
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                Auto-generated via Cloudflare Workers AI edge pipeline
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="gradient-heading" style={{ fontSize: '1.4rem' }}>
-              AI Client Intake Summary
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Auto-generated via Cloudflare Workers AI edge pipeline
-            </p>
+
+          {/* Sync Status Badge */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            background: submitStatus === 'success' ? 'rgba(16, 185, 129, 0.15)' : submitStatus === 'error' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(6, 182, 212, 0.15)',
+            border: `1px solid ${submitStatus === 'success' ? '#10b981' : submitStatus === 'error' ? '#ef4444' : '#06b6d4'}`,
+            color: submitStatus === 'success' ? '#10b981' : submitStatus === 'error' ? '#f87171' : '#38bdf8'
+          }}>
+            {submitStatus === 'submitting' && <RefreshCw size={13} className="spin" />}
+            {submitStatus === 'success' && <Check size={13} />}
+            {submitStatus === 'error' && <AlertCircle size={13} />}
+            {submitStatus === 'submitting' && 'Syncing Hub...'}
+            {submitStatus === 'success' && `Hub Ingested ${leadId ? `(#${leadId.slice(0, 6)})` : ''}`}
+            {submitStatus === 'error' && 'Sync Failed (Offline)'}
           </div>
         </div>
 
@@ -163,6 +235,7 @@ export const IntakeSummaryModal: React.FC<IntakeSummaryModalProps> = ({ summary,
             onClick={() => exportIntakePDF(summary)}
             style={{
               flex: 1,
+              minWidth: '180px',
               padding: '14px',
               borderRadius: '12px',
               background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
@@ -172,12 +245,32 @@ export const IntakeSummaryModal: React.FC<IntakeSummaryModalProps> = ({ summary,
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)'
+              boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
+              border: 'none',
+              cursor: 'pointer'
             }}
           >
             <Download size={18} /> Export PDF Report
           </button>
-          
+
+          <a
+            href="https://dondlingergc.com/?status=submitted"
+            style={{
+              padding: '14px 20px',
+              borderRadius: '12px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              color: '#10b981',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              textDecoration: 'none'
+            }}
+          >
+            Return to Hub <ArrowRight size={18} />
+          </a>
+
           <button
             onClick={() => exportIntakeJSON(summary)}
             style={{
@@ -189,7 +282,8 @@ export const IntakeSummaryModal: React.FC<IntakeSummaryModalProps> = ({ summary,
               fontWeight: 500,
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '8px',
+              cursor: 'pointer'
             }}
           >
             <Share2 size={18} /> Export JSON

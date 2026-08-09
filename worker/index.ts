@@ -60,12 +60,15 @@ export default {
         const text = body.text || "Welcome to DondlingerGC.";
         const personaVoice = (body.voice || body.personaVoice || 'gideon').toLowerCase();
 
-        let voiceName = 'Brian';
-        if (personaVoice === 'mercy' || personaVoice === 'santa_anna') {
-          voiceName = 'en-US-Standard-C';
-        } else if (personaVoice === 'malachi') {
-          voiceName = 'en-US-Standard-D';
-        }
+        const streamVoiceMap: Record<string, string> = {
+          gideon: 'Brian',
+          adam: 'Brian',
+          malachi: 'Russell',
+          santa_anna: 'Salli',
+          mercy: 'Joanna',
+          nicole: 'Kimberly'
+        };
+        const voiceName = streamVoiceMap[personaVoice] || 'Brian';
 
         const ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${voiceName}&text=${encodeURIComponent(text)}`;
         const ttsRes = await fetch(ttsUrl).catch(() => null);

@@ -148,16 +148,43 @@ export class WebRTCVoiceClient {
   }
 
   private async speakText(text: string, personaVoice: string = 'gideon'): Promise<void> {
-    // 1. Fetch & Play Pristine HD Neural Audio Stream from Server API
+    // 1. Fetch & Play Pristine HD Neural Audio Stream (Distinct Persona Mappings)
     try {
+      let audioBlob: Blob | null = null;
+
       const response = await fetch('/api/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, personaVoice })
       }).catch(() => null);
 
-      if (response && response.ok && response.headers.get('content-type')?.includes('audio')) {
-        const audioBlob = await response.blob();
+      if (response && response.ok) {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('audio') || contentType.includes('wav') || contentType.includes('mpeg') || contentType.includes('octet-stream')) {
+          audioBlob = await response.blob();
+        }
+      }
+
+      // Direct High-Fidelity Neural API Stream Fallback (Distinct Persona Voices)
+      if (!audioBlob) {
+        const voiceKey = personaVoice.toLowerCase();
+        const streamVoiceMap: Record<string, string> = {
+          gideon: 'Brian',
+          adam: 'Brian',
+          malachi: 'Russell',
+          santa_anna: 'Salli',
+          mercy: 'Joanna',
+          nicole: 'Kimberly'
+        };
+        const streamVoice = streamVoiceMap[voiceKey] || 'Brian';
+        const directUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${streamVoice}&text=${encodeURIComponent(text)}`;
+        const directRes = await fetch(directUrl).catch(() => null);
+        if (directRes && directRes.ok) {
+          audioBlob = await directRes.blob();
+        }
+      }
+
+      if (audioBlob) {
         const audioUrl = URL.createObjectURL(audioBlob);
         const player = new Audio(audioUrl);
         await player.play();
