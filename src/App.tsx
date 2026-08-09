@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { MicPermissionCard } from './components/MicPermissionCard';
-import { AudioVisualizer } from './components/AudioVisualizer';
-import { TranscriptView } from './components/TranscriptView';
-import { SessionControls } from './components/SessionControls';
+import { PhoneCallInterface } from './components/PhoneCallInterface';
 import { IntakeSummaryModal } from './components/IntakeSummaryModal';
 import { WebRTCVoiceClient } from './lib/webrtc';
 import { AudioAnalyzer } from './lib/audio-analyzer';
+import { ringtoneSynth } from './lib/ringtone';
 import { ClientInfo, TranscriptMessage, IntakeSummary } from './types/intake';
-import { Sparkles, Shield, Cpu } from 'lucide-react';
+import { Shield, Cpu, Phone } from 'lucide-react';
 
 export function App() {
   const [clientInfo, setClientInfo] = useState<ClientInfo | null>(null);
@@ -24,6 +23,10 @@ export function App() {
   const handleStartSession = async (client: ClientInfo) => {
     setClientInfo(client);
     setIsLoading(true);
+    setConnectionState('connecting');
+
+    // Start dialing ringtone sound
+    ringtoneSynth.startRinging();
 
     const analyzer = new AudioAnalyzer();
     analyzerRef.current = analyzer;
@@ -43,10 +46,29 @@ export function App() {
     voiceClientRef.current = voiceClient;
 
     try {
+      // Simulate 1.8s realistic phone dialing delay before AI picks up the line
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+
       const stream = await voiceClient.requestMicrophone();
       analyzer.initialize(stream);
+
+      // Stop ringtone and play pickup chime
+      ringtoneSynth.stopRinging();
+      ringtoneSynth.playCallAnswerChime();
+
+      // Initial AI Opening Phone Greeting
+      const greetingMsg: TranscriptMessage = {
+        id: `ai-opening-${Date.now()}`,
+        speaker: 'ai',
+        text: `Hello ${client.name}! This is VoiceIntake AI. I'm connected on the line and ready to log your project details for ${client.company}. What is the primary goal or scope of your new project?`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setTranscripts([greetingMsg]);
+      voiceClient.sendToWorkerAI(`Start onboarding intake call for ${client.name} at ${client.company}`, 'gideon');
     } catch (err) {
-      console.error('Failed to start mic session:', err);
+      ringtoneSynth.stopRinging();
+      console.error('Failed to start phone call session:', err);
     } finally {
       setIsLoading(false);
     }
@@ -69,6 +91,7 @@ export function App() {
   };
 
   const handleEndCall = () => {
+    ringtoneSynth.stopRinging();
     if (voiceClientRef.current) voiceClientRef.current.stop();
     if (analyzerRef.current) analyzerRef.current.stop();
     setConnectionState('ended');
@@ -77,7 +100,6 @@ export function App() {
   const handleGenerateSummary = () => {
     if (!clientInfo) return;
 
-    // Extract text from transcripts to construct intelligence summary
     const fullText = transcripts.map((t) => t.text).join(' ');
 
     const generatedSummary: IntakeSummary = {
@@ -89,7 +111,7 @@ export function App() {
       estimatedBudget: fullText.toLowerCase().includes('budget') ? '$15,000 - $30,000' : '$25,000 USD',
       timeline: fullText.toLowerCase().includes('timeline') ? '4 - 6 Weeks' : '30 Days to Launch',
       keyRequirements: [
-        'High-aesthetics WebRTC PWA interface with real-time feedback',
+        'High-aesthetics WebRTC PWA phone interface with real-time feedback',
         'Cloudflare Workers AI edge backend integration (Llama-3 model)',
         'Cloudflare D1 identity & transcript storage schema',
         'Sub-200ms latency audio stream processing & PDF export capability'
@@ -108,6 +130,7 @@ export function App() {
 
   useEffect(() => {
     return () => {
+      ringtoneSynth.stopRinging();
       if (voiceClientRef.current) voiceClientRef.current.stop();
       if (analyzerRef.current) analyzerRef.current.stop();
     };
@@ -122,7 +145,7 @@ export function App() {
         alignItems: 'center',
         justifyContent: 'space-between',
         borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        background: 'rgba(9, 13, 22, 0.7)',
+        background: 'rgba(9, 13, 22, 0.75)',
         backdropFilter: 'blur(12px)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -136,8 +159,8 @@ export function App() {
           <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.2rem', letterSpacing: '-0.02em' }}>
             VoiceIntake<span style={{ color: '#06b6d4' }}>.AI</span>
           </span>
-          <span className="glass-pill" style={{ fontSize: '0.75rem', color: '#a5b4fc' }}>
-            PWA Tool #1
+          <span className="glass-pill" style={{ fontSize: '0.75rem', color: '#a5b4fc', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Phone size={12} /> AI Phone Call Mode
           </span>
         </div>
 
@@ -151,63 +174,22 @@ export function App() {
         </div>
       </header>
 
-      {/* Main Container */}
+      {/* Main Screen Router */}
       <main>
         {!clientInfo || connectionState === 'idle' ? (
           <MicPermissionCard onStartSession={handleStartSession} isLoading={isLoading} />
         ) : (
-          <div style={{ maxWidth: '720px', margin: '30px auto 0 auto', padding: '0 20px' }}>
-            <div className="glass-panel" style={{ padding: '28px' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '16px',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                paddingBottom: '12px'
-              }}>
-                <div>
-                  <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 600 }}>
-                    {clientInfo.company}
-                  </h3>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    Client: {clientInfo.name} ({clientInfo.buyerType})
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Sparkles size={16} color="#06b6d4" />
-                  <span style={{
-                    fontSize: '0.8rem',
-                    color: '#38bdf8',
-                    background: 'rgba(6, 182, 212, 0.15)',
-                    padding: '4px 10px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(6, 182, 212, 0.3)',
-                    fontWeight: 600,
-                    textTransform: 'capitalize'
-                  }}>
-                    Voice Engine: {clientInfo.personaVoice || 'gideon'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Waveform Canvas */}
-              <AudioVisualizer analyzer={analyzerRef.current} state={connectionState} />
-
-              {/* Transcript View with Input Bar */}
-              <TranscriptView transcripts={transcripts} onSendMessage={handleSendMessage} />
-
-              {/* Audio Controls */}
-              <SessionControls
-                isMuted={isMuted}
-                onToggleMute={handleToggleMute}
-                onEndCall={handleEndCall}
-                onGenerateSummary={handleGenerateSummary}
-                hasTranscripts={transcripts.length > 0}
-              />
-            </div>
-          </div>
+          <PhoneCallInterface
+            clientInfo={clientInfo}
+            connectionState={connectionState}
+            transcripts={transcripts}
+            isMuted={isMuted}
+            analyzer={analyzerRef.current}
+            onToggleMute={handleToggleMute}
+            onEndCall={handleEndCall}
+            onGenerateSummary={handleGenerateSummary}
+            onSendMessage={handleSendMessage}
+          />
         )}
 
         {/* Summary Modal */}
