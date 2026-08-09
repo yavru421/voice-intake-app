@@ -85,7 +85,7 @@ export const PhoneCallInterface: React.FC<PhoneCallInterfaceProps> = ({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             <Sparkles size={14} color="#06b6d4" />
-            <span>HD Voice (Gideon AI)</span>
+            <span>HD Voice ({(clientInfo.personaVoice || 'gideon').toUpperCase()} AI)</span>
           </div>
         </div>
 
@@ -108,7 +108,10 @@ export const PhoneCallInterface: React.FC<PhoneCallInterfaceProps> = ({
           </div>
 
           <h2 style={{ color: '#ffffff', fontSize: '1.4rem', fontWeight: 700, marginBottom: '4px' }}>
-            VoiceIntake AI Assistant
+            {clientInfo.personaVoice === 'mercy' ? 'Mercy (AI Intake Director)' :
+             clientInfo.personaVoice === 'malachi' ? 'Malachi (AI Executive Director)' :
+             clientInfo.personaVoice === 'santa_anna' ? 'Santa Anna (Cloud Architect AI)' :
+             'Gideon (AI Engineering Director)'}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             {clientInfo.company} • {clientInfo.name}

@@ -14,13 +14,16 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const personas = ['gideon', 'mercy', 'malachi', 'santa_anna'];
+    const randomPersona = personas[Math.floor(Math.random() * personas.length)];
+
     onStartSession({
       name: name || 'Valued Client',
       company: company || 'Client Organization',
       email: `${(name || 'client').toLowerCase().replace(/\s+/g, '.')}@${(company || 'company').toLowerCase().replace(/\s+/g, '')}.com`,
       phone: '+1 (555) 000-0000',
       buyerType: 'client',
-      personaVoice: personaVoice || 'gideon'
+      personaVoice: randomPersona
     });
   };
 
@@ -75,31 +78,7 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
             </div>
           </div>
 
-          <div>
-            <label htmlFor="persona-voice" style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '6px' }}>
-              AI Engineering Director Persona Voice
-            </label>
-            <select
-              id="persona-voice"
-              value={personaVoice}
-              onChange={(e) => setPersonaVoice(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px 14px',
-                borderRadius: '12px',
-                background: 'rgba(0,0,0,0.35)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: '#fff',
-                fontSize: '0.95rem',
-                outline: 'none'
-              }}
-            >
-              <option value="gideon" style={{ background: '#090d16', color: '#fff' }}>🎙️ Gideon (Crisp Baritone Male - Core AI Director)</option>
-              <option value="mercy" style={{ background: '#090d16', color: '#fff' }}>🎙️ Mercy (Articulate Midwest Female - Telemetry & Scoping)</option>
-              <option value="malachi" style={{ background: '#090d16', color: '#fff' }}>🎙️ Malachi (Deep Executive Male - Operator Advisor)</option>
-              <option value="santa_anna" style={{ background: '#090d16', color: '#fff' }}>🎙️ Santa Anna (Edge Cloud Female - Cloud Architecture)</option>
-            </select>
-          </div>
+
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
             <button
