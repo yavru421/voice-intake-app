@@ -3,8 +3,8 @@ export interface ClientInfo {
   email: string;
   phone: string;
   company: string;
-  buyerType: 'contractor' | 'agency' | 'freelancer' | 'service_provider';
-  personaVoice: 'gideon' | 'malachi' | 'santa_anna' | 'mercy' | 'orion';
+  buyerType?: string;
+  personaVoice?: string;
 }
 
 export interface TranscriptMessage {

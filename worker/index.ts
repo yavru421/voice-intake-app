@@ -30,14 +30,14 @@ export default {
             messages: [
               {
                 role: 'system',
-                content: `You are VoiceIntake AI (${body.personaVoice || 'gideon'} persona), an empathetic, sub-200ms real-time voice onboarding assistant for contractors, agencies, and high-ticket freelancers. Keep responses under 2 sentences, clear, professional, and conversational.`
+                content: `You are VoiceIntake AI, an executive client onboarding director. Your goal is to guide the client through an intake interview until all project parameters are gathered: 1) Core project scope & objectives, 2) Technical features & integrations, 3) Budget range, and 4) Target launch timeline. Ask 1 focused question at a time. Keep responses concise (under 2 sentences), professional, and conversational.`
               },
               { role: 'user', content: body.prompt }
             ]
           });
-          aiReply = aiResponse.response || "Thank you. I have logged those project details. Could you tell me more about your desired timeline?";
+          aiReply = aiResponse.response || "Thank you. I have logged those project details. Could you tell me more about your target budget or launch timeline?";
         } else {
-          aiReply = "I have noted that requirement! What is your target deadline or launch timeline for this project?";
+          aiReply = "I have noted that requirement! What is your target budget or launch deadline for this implementation?";
         }
 
         return new Response(JSON.stringify({ reply: aiReply }), {

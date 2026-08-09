@@ -22,7 +22,7 @@ export function exportIntakePDF(summary: IntakeSummary): void {
   doc.setFont('Helvetica', 'normal');
   doc.setTextColor(148, 163, 184); // slate 400
   doc.text(`Generated on ${summary.generatedAt} | Session ID: ${summary.sessionId}`, 14, 30);
-  doc.text(`Target Buyer Category: ${summary.clientInfo.buyerType.toUpperCase()}`, 14, 37);
+  doc.text(`Target Buyer Category: ${(summary.clientInfo.buyerType || 'Client').toUpperCase()}`, 14, 37);
 
   // Client Details Section
   doc.setFontSize(14);
