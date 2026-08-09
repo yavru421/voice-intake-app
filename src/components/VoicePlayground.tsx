@@ -56,6 +56,10 @@ export const VoicePlayground: React.FC = () => {
   const [pitch, setPitch] = useState<number>(1.0);
 
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
+  const [compileProgress, setCompileProgress] = useState<number>(0);
+  const [compileStepText, setCompileStepText] = useState<string>('Ready');
+  const [compileElapsedMs, setCompileElapsedMs] = useState<number>(0);
+
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentClip, setCurrentClip] = useState<CompiledVoiceClip | null>(null);
   const [history, setHistory] = useState<CompiledVoiceClip[]>([]);
@@ -119,6 +123,25 @@ export const VoicePlayground: React.FC = () => {
     const personaToUse = overridePersona || selectedPersona;
     setIsCompiling(true);
     setIsPlaying(false);
+    setCompileProgress(10);
+    setCompileStepText('⚡ Initializing ONNX Tensor Pipeline...');
+    setCompileElapsedMs(0);
+
+    const startTime = Date.now();
+    const progressTimer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      setCompileElapsedMs(elapsed);
+      if (elapsed < 300) {
+        setCompileProgress(30);
+        setCompileStepText(`🎙️ Evaluating ${personaToUse.toUpperCase()} Voice Vector...`);
+      } else if (elapsed < 800) {
+        setCompileProgress(70);
+        setCompileStepText('🌊 Synthesizing Neural WebAudio Waveform...');
+      } else if (elapsed < 1400) {
+        setCompileProgress(90);
+        setCompileStepText('✨ Rendering High-Fidelity Audio Buffer...');
+      }
+    }, 100);
 
     try {
       if (wasmEngineRef.current) {
@@ -128,6 +151,10 @@ export const VoicePlayground: React.FC = () => {
           speed,
           pitch
         );
+
+        clearInterval(progressTimer);
+        setCompileProgress(100);
+        setCompileStepText('🎉 ONNX Voice Synthesis Complete!');
 
         let engineLabel = 'Kokoro ONNX Neural Engine';
         if (result.engine === 'kokoro_onnx_local') engineLabel = 'Kokoro-v0.19 ONNX (Local Vector Engine)';
@@ -156,9 +183,10 @@ export const VoicePlayground: React.FC = () => {
         }
       }
     } catch (err) {
+      clearInterval(progressTimer);
       console.error('Speech compilation error:', err);
     } finally {
-      setIsCompiling(false);
+      setTimeout(() => setIsCompiling(false), 500);
     }
   };
 
@@ -199,8 +227,6 @@ export const VoicePlayground: React.FC = () => {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } else {
-      alert('Synthesizing Kokoro ONNX voice clip...');
     }
   };
 
@@ -299,10 +325,36 @@ export const VoicePlayground: React.FC = () => {
               }}
             />
 
+            {/* Generation Counter Meter / Progress Bar */}
+            {isCompiling && (
+              <div style={{ marginTop: '18px', padding: '14px 16px', borderRadius: '12px', background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <RefreshCw className="spin" size={14} /> {compileStepText}
+                  </span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#06b6d4', fontFamily: 'monospace' }}>
+                    {compileProgress}% • {(compileElapsedMs / 1000).toFixed(1)}s
+                  </span>
+                </div>
+
+                {/* Meter Bar Container */}
+                <div style={{ height: '8px', width: '100%', borderRadius: '4px', background: 'rgba(15, 23, 42, 0.8)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${compileProgress}%`,
+                    borderRadius: '4px',
+                    background: 'linear-gradient(90deg, #06b6d4 0%, #6366f1 50%, #10b981 100%)',
+                    boxShadow: '0 0 12px rgba(6, 182, 212, 0.6)',
+                    transition: 'width 0.15s ease-out'
+                  }} />
+                </div>
+              </div>
+            )}
+
             {/* Action Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Zap size={14} color="#f59e0b" /> Sub-200ms Kokoro ONNX Neural Synthesis
+                <Zap size={14} color="#f59e0b" /> Real-time ONNX Compilation & Synthesis
               </div>
 
               <button
@@ -326,7 +378,7 @@ export const VoicePlayground: React.FC = () => {
               >
                 {isCompiling ? (
                   <>
-                    <RefreshCw className="spin" size={18} /> Synthesizing Kokoro ONNX...
+                    <RefreshCw className="spin" size={18} /> Compiling ({compileProgress}%)
                   </>
                 ) : (
                   <>
@@ -487,7 +539,7 @@ export const VoicePlayground: React.FC = () => {
                 <Clock size={16} /> Session Compilation Log
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '360px', overflowY: 'auto' }}>
                 {history.map((clip) => (
                   <div
                     key={clip.id}
