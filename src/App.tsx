@@ -52,6 +52,12 @@ export function App() {
     }
   };
 
+  const handleSendMessage = (text: string) => {
+    if (voiceClientRef.current && clientInfo) {
+      voiceClientRef.current.sendToWorkerAI(text, clientInfo.personaVoice || 'gideon');
+    }
+  };
+
   const handleToggleMute = () => {
     if (voiceClientRef.current) {
       const stream = voiceClientRef.current.getMediaStream();
@@ -77,7 +83,7 @@ export function App() {
     const generatedSummary: IntakeSummary = {
       sessionId: `sess-${Math.random().toString(36).substring(2, 9)}`,
       clientInfo,
-      projectScope: fullText.length > 50 
+      projectScope: fullText.length > 30 
         ? fullText 
         : `Client ${clientInfo.name} from ${clientInfo.company} requests an end-to-end digital transformation and custom WebRTC/AI software implementation.`,
       estimatedBudget: fullText.toLowerCase().includes('budget') ? '$15,000 - $30,000' : '$25,000 USD',
@@ -189,8 +195,8 @@ export function App() {
               {/* Waveform Canvas */}
               <AudioVisualizer analyzer={analyzerRef.current} state={connectionState} />
 
-              {/* Transcript View */}
-              <TranscriptView transcripts={transcripts} />
+              {/* Transcript View with Input Bar */}
+              <TranscriptView transcripts={transcripts} onSendMessage={handleSendMessage} />
 
               {/* Audio Controls */}
               <SessionControls

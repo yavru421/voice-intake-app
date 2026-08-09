@@ -14,6 +14,7 @@ export class WebRTCVoiceClient {
   private isConnected: boolean = false;
   private synthesis: SpeechSynthesis | null = null;
   private wasmEngine: ClientWebAssemblyVoiceEngine;
+  public hasSpeechRecognition: boolean = true;
 
   constructor(options: WebRTCClientOptions) {
     this.options = options;
@@ -50,10 +51,13 @@ export class WebRTCVoiceClient {
   private initSpeechRecognition(): void {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.warn('SpeechRecognition API not available in this browser environment.');
+      console.warn('SpeechRecognition API not available in this browser environment. Enabling text & WebAudio fallback mode.');
+      this.hasSpeechRecognition = false;
+      this.options.onStateChange('listening');
       return;
     }
 
+    this.hasSpeechRecognition = true;
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
@@ -102,6 +106,16 @@ export class WebRTCVoiceClient {
 
   public async sendToWorkerAI(userPrompt: string, personaVoice: string = 'gideon'): Promise<void> {
     this.options.onStateChange('speaking');
+    
+    // Log user transcript message if not already added
+    const userMsg: TranscriptMessage = {
+      id: `msg-${Date.now()}`,
+      speaker: 'user',
+      text: userPrompt,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    this.options.onTranscript(userMsg);
+
     try {
       // Call Cloudflare Worker AI Edge Endpoint or Local Worker Endpoint
       const response = await fetch('/api/ai-chat', {
@@ -147,20 +161,24 @@ export class WebRTCVoiceClient {
     }).catch(() => {
       // Fallback to browser SpeechSynthesis API
       if (!this.synthesis) return;
-      this.synthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.05;
-      utterance.pitch = personaVoice === 'santa_anna' ? 1.1 : personaVoice === 'malachi' ? 0.9 : 1.0;
-      
-      const voices = this.synthesis.getVoices();
-      const matchedVoice = voices.find(v => 
-        (personaVoice === 'mercy' || personaVoice === 'santa_anna') 
-          ? v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English')
-          : v.name.includes('Male') || v.name.includes('Natural')
-      );
-      if (matchedVoice) utterance.voice = matchedVoice;
+      try {
+        this.synthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.05;
+        utterance.pitch = personaVoice === 'santa_anna' ? 1.1 : personaVoice === 'malachi' ? 0.9 : 1.0;
+        
+        const voices = this.synthesis.getVoices();
+        const matchedVoice = voices.find(v => 
+          (personaVoice === 'mercy' || personaVoice === 'santa_anna') 
+            ? v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English')
+            : v.name.includes('Male') || v.name.includes('Natural')
+        );
+        if (matchedVoice) utterance.voice = matchedVoice;
 
-      this.synthesis.speak(utterance);
+        this.synthesis.speak(utterance);
+      } catch (e) {
+        console.warn('SpeechSynthesis execution warning:', e);
+      }
     });
   }
 
@@ -189,7 +207,7 @@ export class WebRTCVoiceClient {
       try { this.recognition.stop(); } catch (e) {}
     }
     if (this.synthesis) {
-      this.synthesis.cancel();
+      try { this.synthesis.cancel(); } catch (e) {}
     }
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
