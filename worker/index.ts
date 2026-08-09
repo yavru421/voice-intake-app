@@ -59,7 +59,36 @@ export default {
       }
 
       if (url.pathname === '/api/speak' && request.method === 'POST') {
-        return new Response(JSON.stringify({ success: true, mode: 'browser_tts' }), {
+        let body: { text?: string; personaVoice?: string } = {};
+        try { body = await request.json(); } catch (e) {}
+
+        const text = body.text || "Welcome to DondlingerGC.";
+        const personaVoice = (body.personaVoice || 'gideon').toLowerCase();
+
+        // Select HD Neural Voice model
+        let voiceName = 'en-US-AndrewMultilingualNeural';
+        if (personaVoice === 'mercy' || personaVoice === 'santa_anna') {
+          voiceName = 'en-US-AvaMultilingualNeural';
+        } else if (personaVoice === 'malachi') {
+          voiceName = 'en-US-BrianNeural';
+        }
+
+        // Fetch Neural Audio Stream from Edge TTS Provider
+        const ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${voiceName.includes('Brian') ? 'Brian' : voiceName.includes('Ava') ? 'en-US-Standard-C' : 'en-US-Standard-D'}&text=${encodeURIComponent(text)}`;
+        const ttsRes = await fetch(ttsUrl).catch(() => null);
+
+        if (ttsRes && ttsRes.ok) {
+          const audioBuffer = await ttsRes.arrayBuffer();
+          return new Response(audioBuffer, {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'audio/mpeg'
+            }
+          });
+        }
+
+        return new Response(JSON.stringify({ success: false, mode: 'fallback' }), {
           status: 200,
           headers: corsHeaders
         });

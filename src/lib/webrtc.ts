@@ -148,7 +148,26 @@ export class WebRTCVoiceClient {
   }
 
   private async speakText(text: string, personaVoice: string = 'gideon'): Promise<void> {
-    // 1. Try In-Browser Kokoro ONNX Neural Synthesis First
+    // 1. Fetch & Play Pristine HD Neural Audio Stream from Server API
+    try {
+      const response = await fetch('/api/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, personaVoice })
+      }).catch(() => null);
+
+      if (response && response.ok && response.headers.get('content-type')?.includes('audio')) {
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const player = new Audio(audioUrl);
+        await player.play();
+        return;
+      }
+    } catch (e) {
+      console.warn('Server HD Neural audio playback fallback:', e);
+    }
+
+    // 2. Try In-Browser Kokoro ONNX Neural Engine
     try {
       const playedNeural = await this.wasmEngine.synthesizeAndPlay(text, personaVoice);
       if (playedNeural) return;
