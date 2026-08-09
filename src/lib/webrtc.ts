@@ -97,6 +97,10 @@ export class WebRTCVoiceClient {
     this.recognition.start();
   }
 
+  public speakDirectly(text: string, personaVoice: string = 'gideon'): void {
+    this.speakText(text, personaVoice);
+  }
+
   public async sendToWorkerAI(userPrompt: string, personaVoice: string = 'gideon', skipUserTranscript: boolean = false): Promise<void> {
     this.options.onStateChange('speaking');
     
@@ -111,7 +115,6 @@ export class WebRTCVoiceClient {
     }
 
     try {
-      // Call Cloudflare Worker AI Edge Endpoint or Local Worker Endpoint
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,44 +146,41 @@ export class WebRTCVoiceClient {
   }
 
   private speakText(text: string, personaVoice: string = 'gideon'): void {
-    // Load Client-Side WebAssembly Voice Preset (.npy)
+    // Load Client-Side WebAssembly Voice Vector
     this.wasmEngine.synthesizeText(text, personaVoice);
 
-    const playBrowserTTS = () => {
-      if (!this.synthesis) return;
+    if (!this.synthesis) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        this.synthesis = window.speechSynthesis;
+      }
+    }
+
+    if (this.synthesis) {
       try {
         this.synthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.05;
-        utterance.pitch = personaVoice === 'santa_anna' ? 1.1 : personaVoice === 'malachi' ? 0.9 : 1.0;
+        utterance.rate = 1.0;
+        utterance.pitch = personaVoice === 'santa_anna' ? 1.1 : personaVoice === 'malachi' ? 0.85 : 1.0;
+        utterance.volume = 1.0;
         
         const voices = this.synthesis.getVoices();
-        const matchedVoice = voices.find(v => 
-          (personaVoice === 'mercy' || personaVoice === 'santa_anna') 
-            ? v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English')
-            : v.name.includes('Male') || v.name.includes('Natural')
-        );
-        if (matchedVoice) utterance.voice = matchedVoice;
+        if (voices.length > 0) {
+          const matchedVoice = voices.find(v => 
+            (personaVoice === 'mercy' || personaVoice === 'santa_anna') 
+              ? v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Google US English')
+              : v.name.includes('Male') || v.name.includes('David') || v.name.includes('Natural') || v.name.includes('Google')
+          ) || voices[0];
+
+          if (matchedVoice) {
+            utterance.voice = matchedVoice;
+          }
+        }
 
         this.synthesis.speak(utterance);
       } catch (e) {
         console.warn('SpeechSynthesis execution warning:', e);
       }
-    };
-
-    fetch('/api/speak', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice: personaVoice })
-    })
-      .then((res) => {
-        if (!res.ok) {
-          playBrowserTTS();
-        }
-      })
-      .catch(() => {
-        playBrowserTTS();
-      });
+    }
   }
 
   private generateFallbackAIResponse(prompt: string): string {

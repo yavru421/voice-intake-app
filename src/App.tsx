@@ -25,6 +25,16 @@ export function App() {
     setIsLoading(true);
     setConnectionState('connecting');
 
+    // Explicitly unlock browser SpeechSynthesis audio engine on user gesture
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const unlockMsg = new SpeechSynthesisUtterance('');
+        unlockMsg.volume = 0.01;
+        window.speechSynthesis.speak(unlockMsg);
+      } catch (e) {}
+    }
+
     // Start dialing ringtone sound
     ringtoneSynth.startRinging();
 
@@ -38,15 +48,13 @@ export function App() {
       onStateChange: (state) => {
         setConnectionState(state);
       },
-      onAIResponse: () => {
-        // AI response trigger
-      }
+      onAIResponse: () => {}
     });
 
     voiceClientRef.current = voiceClient;
 
     try {
-      // Simulate 1.8s realistic phone dialing delay before AI picks up the line
+      // Simulate realistic phone dialing delay before AI picks up line
       await new Promise((resolve) => setTimeout(resolve, 1800));
 
       const stream = await voiceClient.requestMicrophone();
@@ -57,15 +65,17 @@ export function App() {
       ringtoneSynth.playCallAnswerChime();
 
       // Initial AI Opening Phone Greeting
+      const greetingText = `Hello ${client.name}! This is VoiceIntake AI on Cloudflare Workers edge. I'm connected on the line for ${client.company}. What is the primary goal or scope of your new project?`;
+      
       const greetingMsg: TranscriptMessage = {
         id: `ai-opening-${Date.now()}`,
         speaker: 'ai',
-        text: `Hello ${client.name}! This is VoiceIntake AI. I'm connected on the line and ready to log your project details for ${client.company}. What is the primary goal or scope of your new project?`,
+        text: greetingText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
       setTranscripts([greetingMsg]);
-      voiceClient.sendToWorkerAI(`Start onboarding intake call for ${client.name} at ${client.company}`, 'gideon');
+      voiceClient.speakDirectly(greetingText, client.personaVoice || 'gideon');
     } catch (err) {
       ringtoneSynth.stopRinging();
       console.error('Failed to start phone call session:', err);
@@ -166,10 +176,10 @@ export function App() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Cpu size={16} color="#06b6d4" /> Workers AI
+            <Cpu size={16} color="#06b6d4" /> Cloudflare Workers
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Shield size={16} color="#10b981" /> WebRTC Audio
+            <Shield size={16} color="#10b981" /> WebAudio AI Stream
           </span>
         </div>
       </header>
