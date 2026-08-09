@@ -147,10 +147,16 @@ export class WebRTCVoiceClient {
     }
   }
 
-  private speakText(text: string, personaVoice: string = 'gideon'): void {
-    // Load Client-Side WebAssembly Voice Vector
-    this.wasmEngine.synthesizeText(text, personaVoice);
+  private async speakText(text: string, personaVoice: string = 'gideon'): Promise<void> {
+    // 1. Try In-Browser Kokoro ONNX Neural Synthesis First
+    try {
+      const playedNeural = await this.wasmEngine.synthesizeAndPlay(text, personaVoice);
+      if (playedNeural) return;
+    } catch (e) {
+      console.warn('In-browser Kokoro ONNX audio playback fallback:', e);
+    }
 
+    // 2. Fallback to Browser Natural HD WebSpeech Voice
     if (!this.synthesis) {
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         this.synthesis = window.speechSynthesis;
