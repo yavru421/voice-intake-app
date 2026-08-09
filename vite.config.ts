@@ -1,6 +1,6 @@
 import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { execFile, exec } from 'child_process';
+import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
@@ -19,9 +19,10 @@ function speechAppPlugin(): Plugin {
               const personaVoice = payload.voice || payload.personaVoice || 'gideon';
               const speed = payload.speed || 1.0;
 
-              // Use local python synth.py with local kokoro-v0_19.onnx and .npy presets
+              // Execute local python synth.py with Kokoro ONNX model (kokoro-v0_19.onnx)
               const synthScript = path.normalize('C:/dev/speech-mcp-server/synth.py');
-              const cmd = `python "${synthScript}" "${text.replace(/"/g, '\\"')}" "${personaVoice}" ${speed}`;
+              const cleanText = text.replace(/"/g, '\\"').replace(/\n/g, ' ');
+              const cmd = `python "${synthScript}" "${cleanText}" "${personaVoice}" ${speed}`;
 
               exec(cmd, { cwd: 'C:/dev/speech-mcp-server' }, (err, stdout, stderr) => {
                 if (err) {
@@ -34,22 +35,29 @@ function speechAppPlugin(): Plugin {
                 // Extract WAV output path from stdout: SYNTH_WAV:<file>
                 const match = stdout.match(/SYNTH_WAV:(.+)/);
                 if (match && match[1]) {
-                  const wavPath = match[1].trim();
+                  const rawPath = match[1].trim();
+                  const wavPath = path.normalize(rawPath);
+
                   if (fs.existsSync(wavPath)) {
                     const audioBuffer = fs.readFileSync(wavPath);
                     res.setHeader('Content-Type', 'audio/wav');
                     res.setHeader('Content-Length', audioBuffer.length);
+                    res.setHeader('Cache-Control', 'no-cache');
                     res.end(audioBuffer);
 
-                    // Clean up temp file
-                    try { fs.unlinkSync(wavPath); } catch (e) {}
+                    // Asynchronously clean up scratch WAV file
+                    setTimeout(() => {
+                      try { if (fs.existsSync(wavPath)) fs.unlinkSync(wavPath); } catch (e) {}
+                    }, 1000);
                     return;
+                  } else {
+                    console.error('Synthesized WAV path does not exist:', wavPath);
                   }
                 }
 
-                // Fallback if audio file not created
+                res.statusCode = 500;
                 res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ success: true, voice: personaVoice, output: stdout.trim() }));
+                res.end(JSON.stringify({ error: 'Failed to locate generated ONNX audio file' }));
               });
             } catch (e: any) {
               res.statusCode = 400;

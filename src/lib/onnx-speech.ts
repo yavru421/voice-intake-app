@@ -4,7 +4,7 @@ export interface SynthesisResult {
   audioUrl: string | null;
   blob: Blob | null;
   latencyMs: number;
-  engine: 'onnx_wasm' | 'kokoro_local_onnx' | 'webspeech';
+  engine: 'kokoro_onnx_local' | 'onnx_wasm' | 'webspeech';
   text: string;
   voice: string;
 }
@@ -18,7 +18,6 @@ export class ClientWebAssemblyVoiceEngine {
     if (this.isReady || this.isLoading) return;
     this.isLoading = true;
     try {
-      // Initialize KokoroTTS client-side with q8 quantized ONNX model (~80MB fast load)
       const model_id = 'onnx-community/Kokoro-82M-v1.0-ONNX';
       this.tts = await KokoroTTS.from_pretrained(model_id, {
         dtype: 'q8',
@@ -27,7 +26,7 @@ export class ClientWebAssemblyVoiceEngine {
       this.isReady = true;
       console.log('✨ Kokoro-82M ONNX WebAssembly Engine Loaded In-Browser!');
     } catch (err) {
-      console.warn('Kokoro-JS in-browser initialization fallback:', err);
+      console.warn('Kokoro-JS in-browser WASM initialization notice:', err);
     } finally {
       this.isLoading = false;
     }
@@ -59,7 +58,36 @@ export class ClientWebAssemblyVoiceEngine {
   ): Promise<SynthesisResult> {
     const startTime = performance.now();
 
-    // 1. Try In-Browser Kokoro WASM ONNX Engine if loaded
+    // 1. Direct Kokoro ONNX Server Proxy Call (/api/speak using synth.py + kokoro-v0_19.onnx)
+    try {
+      const response = await fetch('/api/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: voiceName, personaVoice: voiceName, speed })
+      }).catch(() => null);
+
+      if (response && response.ok) {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('audio') || contentType.includes('wav') || contentType.includes('octet-stream')) {
+          const blob = await response.blob();
+          const audioUrl = URL.createObjectURL(blob);
+          const latencyMs = Math.round(performance.now() - startTime);
+
+          return {
+            audioUrl,
+            blob,
+            latencyMs,
+            engine: 'kokoro_onnx_local',
+            text,
+            voice: voiceName
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Local Kokoro ONNX endpoint failed, falling back:', e);
+    }
+
+    // 2. In-Browser Kokoro WASM ONNX Engine Fallback
     if (this.tts && this.isReady) {
       try {
         const kokoroVoiceMap: Record<string, string> = {
@@ -92,40 +120,11 @@ export class ClientWebAssemblyVoiceEngine {
           };
         }
       } catch (err) {
-        console.warn('Kokoro WASM generate error, falling back to Kokoro Local ONNX server endpoint:', err);
+        console.warn('Kokoro WASM generate error:', err);
       }
     }
 
-    // 2. Try Pristine Local Kokoro ONNX Server Endpoint (/api/speak with synth.py + kokoro-v0_19.onnx)
-    try {
-      const response = await fetch('/api/speak', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice: voiceName, personaVoice: voiceName, speed })
-      }).catch(() => null);
-
-      if (response && response.ok) {
-        const contentType = response.headers.get('content-type') || '';
-        if (contentType.includes('audio')) {
-          const blob = await response.blob();
-          const audioUrl = URL.createObjectURL(blob);
-          const latencyMs = Math.round(performance.now() - startTime);
-
-          return {
-            audioUrl,
-            blob,
-            latencyMs,
-            engine: 'kokoro_local_onnx',
-            text,
-            voice: voiceName
-          };
-        }
-      }
-    } catch (e) {
-      console.warn('Local Kokoro ONNX endpoint error:', e);
-    }
-
-    // 3. Fallback to WebSpeech Native Browser API if network/server is unavailable
+    // 3. Last-resort Fallback to WebSpeech Native Browser API if Kokoro ONNX is unavailable
     const latencyMs = Math.round(performance.now() - startTime);
     return new Promise((resolve) => {
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {

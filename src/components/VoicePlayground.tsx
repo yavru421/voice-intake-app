@@ -130,8 +130,8 @@ export const VoicePlayground: React.FC = () => {
         );
 
         let engineLabel = 'Kokoro ONNX Neural Engine';
-        if (result.engine === 'onnx_wasm') engineLabel = 'Kokoro ONNX WASM (In-Browser)';
-        else if (result.engine === 'kokoro_local_onnx') engineLabel = 'Kokoro ONNX Server (Local Model)';
+        if (result.engine === 'kokoro_onnx_local') engineLabel = 'Kokoro-v0.19 ONNX (Local Vector Engine)';
+        else if (result.engine === 'onnx_wasm') engineLabel = 'Kokoro ONNX WASM (In-Browser)';
         else engineLabel = 'WebSpeech Native';
 
         const newClip: CompiledVoiceClip = {
