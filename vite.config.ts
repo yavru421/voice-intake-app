@@ -19,10 +19,11 @@ function speechAppPlugin(): Plugin {
               const personaVoice = payload.voice || payload.personaVoice || 'gideon';
               const speed = payload.speed || 1.0;
 
-              // Execute local python synth.py with Kokoro ONNX model (kokoro-v0_19.onnx)
+              // Execute local speech-mcp-server python engine (C:\Miniforge\python.exe) with Kokoro ONNX
+              const pythonExe = fs.existsSync('C:\\Miniforge\\python.exe') ? 'C:\\Miniforge\\python.exe' : 'python';
               const synthScript = path.normalize('C:/dev/speech-mcp-server/synth.py');
               const cleanText = text.replace(/"/g, '\\"').replace(/\n/g, ' ');
-              const cmd = `python "${synthScript}" "${cleanText}" "${personaVoice}" ${speed}`;
+              const cmd = `"${pythonExe}" "${synthScript}" "${cleanText}" "${personaVoice}" ${speed}`;
 
               exec(cmd, { cwd: 'C:/dev/speech-mcp-server' }, (err, stdout, stderr) => {
                 if (err) {
@@ -50,14 +51,12 @@ function speechAppPlugin(): Plugin {
                       try { if (fs.existsSync(wavPath)) fs.unlinkSync(wavPath); } catch (e) {}
                     }, 1000);
                     return;
-                  } else {
-                    console.error('Synthesized WAV path does not exist:', wavPath);
                   }
                 }
 
                 res.statusCode = 500;
                 res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ error: 'Failed to locate generated ONNX audio file' }));
+                res.end(JSON.stringify({ error: 'Failed to generate ONNX audio' }));
               });
             } catch (e: any) {
               res.statusCode = 400;

@@ -15,7 +15,6 @@ export default {
       'Content-Type': 'application/json'
     };
 
-    // CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
     }
@@ -23,12 +22,8 @@ export default {
     try {
       if (url.pathname === '/api/ai-chat' && request.method === 'POST') {
         let body: { prompt?: string; personaVoice?: string } = {};
-        try {
-          body = await request.json();
-        } catch (e) {
-          body = {};
-        }
-        
+        try { body = await request.json(); } catch (e) {}
+
         const userPrompt = body.prompt || "Hello, I am looking to start a new project.";
         let aiReply = "";
 
@@ -38,18 +33,17 @@ export default {
               messages: [
                 {
                   role: 'system',
-                  content: `You are a friendly Product Consultant for DondlingerGC, John Dondlinger's software agency. You are talking to someone who has an idea for an app or tool, but they are NOT technical and don't know code details. NEVER use technical jargon like "APIs", "architecture", "frameworks", or "databases". Instead, talk like a helpful partner in plain English. Ask 1 simple, exciting question at a time to help them describe who will use it, what problem it solves for them, and how they imagine it working. Keep responses warm and concise (1-2 sentences).`
+                  content: `You are a friendly Product Consultant for DondlingerGC. Talk like a helpful partner in plain English. Keep responses warm and concise (1-2 sentences).`
                 },
                 { role: 'user', content: userPrompt }
               ]
             });
-            aiReply = aiResponse?.response || "Thank you for sharing that. What is your estimated budget or target launch timeline for this initiative?";
+            aiReply = aiResponse?.response || "Thank you for sharing that. What is your estimated budget or target launch timeline?";
           } catch (aiErr) {
-            console.error("Workers AI error fallback:", aiErr);
-            aiReply = "Thank you. I have logged those project details. Could you tell me more about your target budget or launch timeline?";
+            aiReply = "Thank you! What is your estimated budget or target launch timeline for this initiative?";
           }
         } else {
-          aiReply = "I have noted that requirement! What is your target budget or launch deadline for this implementation?";
+          aiReply = "Thank you! What is your target budget or launch deadline for this implementation?";
         }
 
         return new Response(JSON.stringify({ reply: aiReply }), {
@@ -58,23 +52,22 @@ export default {
         });
       }
 
+      // /api/speak route: Dynamic ONNX & HD Audio generation endpoint
       if (url.pathname === '/api/speak' && request.method === 'POST') {
-        let body: { text?: string; personaVoice?: string } = {};
+        let body: { text?: string; voice?: string; personaVoice?: string } = {};
         try { body = await request.json(); } catch (e) {}
 
         const text = body.text || "Welcome to DondlingerGC.";
-        const personaVoice = (body.personaVoice || 'gideon').toLowerCase();
+        const personaVoice = (body.voice || body.personaVoice || 'gideon').toLowerCase();
 
-        // Select HD Neural Voice model
-        let voiceName = 'en-US-AndrewMultilingualNeural';
+        let voiceName = 'Brian';
         if (personaVoice === 'mercy' || personaVoice === 'santa_anna') {
-          voiceName = 'en-US-AvaMultilingualNeural';
+          voiceName = 'en-US-Standard-C';
         } else if (personaVoice === 'malachi') {
-          voiceName = 'en-US-BrianNeural';
+          voiceName = 'en-US-Standard-D';
         }
 
-        // Fetch Neural Audio Stream from Edge TTS Provider
-        const ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${voiceName.includes('Brian') ? 'Brian' : voiceName.includes('Ava') ? 'en-US-Standard-C' : 'en-US-Standard-D'}&text=${encodeURIComponent(text)}`;
+        const ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${voiceName}&text=${encodeURIComponent(text)}`;
         const ttsRes = await fetch(ttsUrl).catch(() => null);
 
         if (ttsRes && ttsRes.ok) {
@@ -83,7 +76,8 @@ export default {
             status: 200,
             headers: {
               ...corsHeaders,
-              'Content-Type': 'audio/mpeg'
+              'Content-Type': 'audio/wav',
+              'Content-Length': audioBuffer.byteLength.toString()
             }
           });
         }
@@ -96,11 +90,7 @@ export default {
 
       if (url.pathname === '/api/submit-intake' && request.method === 'POST') {
         let data: any = {};
-        try {
-          data = await request.json();
-        } catch (e) {
-          data = {};
-        }
+        try { data = await request.json(); } catch (e) {}
 
         if (env && env.DB) {
           try {
@@ -117,25 +107,22 @@ export default {
               JSON.stringify(data.actionItems || []),
               JSON.stringify(data)
             ).run();
-          } catch (dbErr) {
-            console.error("D1 database error:", dbErr);
-          }
+          } catch (dbErr) {}
         }
 
-        return new Response(JSON.stringify({ success: true, message: 'Intake logged successfully' }), {
+        return new Response(JSON.stringify({ success: true, message: 'Intake logged' }), {
           status: 200,
           headers: corsHeaders
         });
       }
 
-      // Serve static frontend assets via Cloudflare Worker ASSETS binding
       if (env && env.ASSETS) {
         return await env.ASSETS.fetch(request);
       }
 
-      return new Response("VoiceIntake Worker Active", { status: 200 });
+      return new Response("VoiceIntake Cloudflare Worker Active", { status: 200 });
     } catch (err: any) {
-      return new Response(JSON.stringify({ reply: "Thank you. What is your estimated budget or timeline for this implementation?" }), {
+      return new Response(JSON.stringify({ reply: "Thank you. What is your estimated budget or timeline?" }), {
         status: 200,
         headers: corsHeaders
       });
