@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "voice-intake-worker",
+  "main": "worker/index.ts",
+  "compatibility_date": "2024-03-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "ai": {
+    "binding": "AI"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "voice_intake_db",
+      "database_id": "b45f10f8-a3fb-43d8-a6e7-976c09d38d8e"
+    }
+  ]
+}
