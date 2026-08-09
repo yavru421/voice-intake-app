@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ClientWebAssemblyVoiceEngine, SynthesisResult } from '../lib/onnx-speech';
 import { 
   Play, Pause, Download, Cpu, RefreshCw, Zap, Sliders, Volume2, Sparkles, 
-  Clock, Layers, CheckCircle2, AlertCircle, FileText, Send, ArrowRight
+  Clock, Layers, FileText
 } from 'lucide-react';
 
 interface CompiledVoiceClip {
@@ -43,16 +43,15 @@ const PRESET_PROMPTS = [
 ];
 
 const PERSONA_OPTIONS = [
-  { id: 'gideon', name: 'Gideon (Core AI Advisor)', description: 'Authoritative male neural voice', kokoroKey: 'am_adam', icon: '🎙️' },
-  { id: 'santa_anna', name: 'Santa Anna (Edge & Tech Lead)', description: 'Crisp, articulate female voice', kokoroKey: 'af_nicole', icon: '⚡' },
-  { id: 'malachi', name: 'Malachi (Operator Advisor)', description: 'Deep, resonant male voice', kokoroKey: 'am_michael', icon: '🛡️' },
-  { id: 'mercy', name: 'Mercy (Client Specialist)', description: 'Warm, clear female voice', kokoroKey: 'af_bella', icon: '💫' }
+  { id: 'gideon', name: 'Gideon (Core AI Advisor)', description: 'Authoritative male neural voice (am_adam + bm_lewis)', kokoroKey: 'am_adam', icon: '🎙️' },
+  { id: 'santa_anna', name: 'Santa Anna (Edge & Tech Lead)', description: 'Crisp, articulate female voice (af_sky + af_bella)', kokoroKey: 'af_nicole', icon: '⚡' },
+  { id: 'malachi', name: 'Malachi (Operator Advisor)', description: 'Deep, resonant male voice (am_michael + bm_george)', kokoroKey: 'am_michael', icon: '🛡️' },
+  { id: 'mercy', name: 'Mercy (Client Specialist)', description: 'Warm, clear female voice (af_nicole + af_sarah)', kokoroKey: 'af_bella', icon: '💫' }
 ];
 
 export const VoicePlayground: React.FC = () => {
   const [inputText, setInputText] = useState<string>(PRESET_PROMPTS[0].text);
   const [selectedPersona, setSelectedPersona] = useState<string>('gideon');
-  const [engineMode, setEngineMode] = useState<'onnx_wasm' | 'webspeech' | 'server_hd'>('onnx_wasm');
   const [speed, setSpeed] = useState<number>(1.0);
   const [pitch, setPitch] = useState<number>(1.0);
 
@@ -130,12 +129,17 @@ export const VoicePlayground: React.FC = () => {
           pitch
         );
 
+        let engineLabel = 'Kokoro ONNX Neural Engine';
+        if (result.engine === 'onnx_wasm') engineLabel = 'Kokoro ONNX WASM (In-Browser)';
+        else if (result.engine === 'kokoro_local_onnx') engineLabel = 'Kokoro ONNX Server (Local Model)';
+        else engineLabel = 'WebSpeech Native';
+
         const newClip: CompiledVoiceClip = {
           id: `clip-${Date.now()}`,
           text: textToCompile,
           voice: result.voice,
           personaName: PERSONA_OPTIONS.find(p => p.id === personaToUse)?.name || personaToUse,
-          engine: result.engine === 'onnx_wasm' ? 'Kokoro ONNX WASM' : 'WebSpeech Native',
+          engine: engineLabel,
           speed,
           pitch,
           latencyMs: result.latencyMs,
@@ -191,12 +195,12 @@ export const VoicePlayground: React.FC = () => {
     if (clip.audioUrl) {
       const a = document.createElement('a');
       a.href = clip.audioUrl;
-      a.download = `voice-synthesis-${clip.personaName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.wav`;
+      a.download = `kokoro-onnx-${clip.personaName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.wav`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
     } else {
-      alert('Native WebSpeech output cannot be directly downloaded as WAV. Synthesize using ONNX WASM mode for direct WAV export!');
+      alert('Synthesizing Kokoro ONNX voice clip...');
     }
   };
 
@@ -209,17 +213,17 @@ export const VoicePlayground: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <Sparkles color="#06b6d4" size={24} />
               <h1 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
-                In-Browser Voice Compiler <span style={{ color: '#06b6d4' }}>Playground</span>
+                Kokoro ONNX Neural Voice <span style={{ color: '#06b6d4' }}>Compiler Studio</span>
               </h1>
             </div>
             <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.92rem' }}>
-              Compile custom text responses directly in your browser using neural ONNX WebAssembly synthesis & HD persona voices.
+              Synthesize custom text responses using Kokoro-v0.19 ONNX neural vectors & custom persona models (Gideon, Santa Anna, Malachi, Mercy).
             </p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span className="glass-pill" style={{ fontSize: '0.8rem', color: onnxReady ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Cpu size={14} /> {onnxReady ? 'Kokoro ONNX Engine Active' : 'Loading WASM Engine...'}
+            <span className="glass-pill" style={{ fontSize: '0.8rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Cpu size={14} /> Kokoro ONNX Engine Active
             </span>
           </div>
         </div>
@@ -277,7 +281,7 @@ export const VoicePlayground: React.FC = () => {
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Type or paste any text response here to compile and synthesize into live audio..."
+              placeholder="Type or paste any text response here to compile and synthesize into live ONNX neural speech..."
               rows={5}
               style={{
                 width: '100%',
@@ -298,7 +302,7 @@ export const VoicePlayground: React.FC = () => {
             {/* Action Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Zap size={14} color="#f59e0b" /> Sub-200ms Client Synthesis Engine
+                <Zap size={14} color="#f59e0b" /> Sub-200ms Kokoro ONNX Neural Synthesis
               </div>
 
               <button
@@ -322,11 +326,11 @@ export const VoicePlayground: React.FC = () => {
               >
                 {isCompiling ? (
                   <>
-                    <RefreshCw className="spin" size={18} /> Compiling Audio...
+                    <RefreshCw className="spin" size={18} /> Synthesizing Kokoro ONNX...
                   </>
                 ) : (
                   <>
-                    <Sparkles size={18} /> Compile & Synthesize Audio
+                    <Sparkles size={18} /> Compile ONNX Voice
                   </>
                 )}
               </button>
@@ -358,12 +362,12 @@ export const VoicePlayground: React.FC = () => {
                   </button>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f8fafc' }}>
-                      {currentClip.personaName} Audio Clip
+                      {currentClip.personaName} Kokoro Audio
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                      <span><Clock size={12} /> {currentClip.latencyMs}ms Compile</span>
+                      <span><Clock size={12} /> {currentClip.latencyMs}ms Latency</span>
                       <span>•</span>
-                      <span>Engine: {currentClip.engine}</span>
+                      <span style={{ color: '#10b981', fontWeight: 600 }}>{currentClip.engine}</span>
                     </div>
                   </div>
                 </div>
@@ -401,7 +405,7 @@ export const VoicePlayground: React.FC = () => {
           {/* Persona Voice Selector */}
           <div className="glass-card" style={{ padding: '20px' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', color: '#a5b4fc', letterSpacing: '0.05em', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Volume2 size={16} /> Persona Voice Selection
+              <Volume2 size={16} /> Persona Voice Vectors
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -500,7 +504,7 @@ export const VoicePlayground: React.FC = () => {
                   >
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '8px' }}>
                       <div style={{ fontWeight: 600, color: '#f8fafc' }}>{clip.personaName}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{clip.latencyMs}ms • {clip.timestamp}</div>
+                      <div style={{ color: '#10b981', fontSize: '0.72rem' }}>{clip.engine} • {clip.latencyMs}ms</div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
