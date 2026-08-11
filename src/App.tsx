@@ -2,15 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { MicPermissionCard } from './components/MicPermissionCard';
 import { PhoneCallInterface } from './components/PhoneCallInterface';
 import { IntakeSummaryModal } from './components/IntakeSummaryModal';
-import { VoicePlayground } from './components/VoicePlayground';
 import { WebRTCVoiceClient } from './lib/webrtc';
 import { AudioAnalyzer } from './lib/audio-analyzer';
 import { ringtoneSynth } from './lib/ringtone';
 import { ClientInfo, TranscriptMessage, IntakeSummary } from './types/intake';
-import { Shield, Cpu, Phone, Sparkles } from 'lucide-react';
+import { Shield, Cpu } from 'lucide-react';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'phone' | 'playground'>('playground');
   const [clientInfo, setClientInfo] = useState<ClientInfo | null>(null);
   const [connectionState, setConnectionState] = useState<string>('idle');
   const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
@@ -32,7 +30,6 @@ export function App() {
       const source = params.get('source');
 
       if (source || name || company) {
-        setActiveTab('phone');
         setClientInfo({
           name: name || 'Valued Partner',
           company: company || 'Enterprise Client',
@@ -192,67 +189,18 @@ export function App() {
               width: '10px',
               height: '10px',
               borderRadius: '50%',
-              background: activeTab === 'playground' ? '#06b6d4' : connectionState === 'listening' || connectionState === 'speaking' ? '#10b981' : '#6366f1',
+              background: connectionState === 'listening' || connectionState === 'speaking' ? '#10b981' : '#06b6d4',
               boxShadow: '0 0 10px #06b6d4'
             }} />
             <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem', letterSpacing: '-0.02em' }}>
               VoiceIntake<span style={{ color: '#06b6d4' }}>.AI</span>
             </span>
           </div>
-
-          {/* Mode Switcher Tabs */}
-          <div style={{
-            display: 'flex',
-            background: 'rgba(15, 23, 42, 0.6)',
-            padding: '4px',
-            borderRadius: '10px',
-            border: '1px solid rgba(255, 255, 255, 0.08)'
-          }}>
-            <button
-              onClick={() => setActiveTab('playground')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                background: activeTab === 'playground' ? 'linear-gradient(135deg, #06b6d4 0%, #6366f1 100%)' : 'transparent',
-                border: 'none',
-                color: '#fff',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <Sparkles size={14} /> Voice Playground
-            </button>
-
-            <button
-              onClick={() => setActiveTab('phone')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                background: activeTab === 'phone' ? 'linear-gradient(135deg, #06b6d4 0%, #6366f1 100%)' : 'transparent',
-                border: 'none',
-                color: '#fff',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <Phone size={14} /> AI Phone Call Mode
-            </button>
-          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Cpu size={16} color="#06b6d4" /> Kokoro ONNX WASM Engine
+            <Cpu size={16} color="#06b6d4" /> Kokoro ONNX Edge Stream
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Shield size={16} color="#10b981" /> WebAudio Stream
@@ -262,24 +210,20 @@ export function App() {
 
       {/* Main View Router */}
       <main>
-        {activeTab === 'playground' ? (
-          <VoicePlayground />
+        {!clientInfo || connectionState === 'idle' ? (
+          <MicPermissionCard onStartSession={handleStartSession} isLoading={isLoading} />
         ) : (
-          !clientInfo || connectionState === 'idle' ? (
-            <MicPermissionCard onStartSession={handleStartSession} isLoading={isLoading} />
-          ) : (
-            <PhoneCallInterface
-              clientInfo={clientInfo}
-              connectionState={connectionState}
-              transcripts={transcripts}
-              isMuted={isMuted}
-              analyzer={analyzerRef.current}
-              onToggleMute={handleToggleMute}
-              onEndCall={handleEndCall}
-              onGenerateSummary={handleGenerateSummary}
-              onSendMessage={handleSendMessage}
-            />
-          )
+          <PhoneCallInterface
+            clientInfo={clientInfo}
+            connectionState={connectionState}
+            transcripts={transcripts}
+            isMuted={isMuted}
+            analyzer={analyzerRef.current}
+            onToggleMute={handleToggleMute}
+            onEndCall={handleEndCall}
+            onGenerateSummary={handleGenerateSummary}
+            onSendMessage={handleSendMessage}
+          />
         )}
 
         {/* Summary Modal */}
