@@ -106,34 +106,25 @@ STRICT RULES:
         });
       }
 
-      // /api/speak route: Dynamic ONNX & HD Audio generation endpoint
+      // /api/speak route: Delegates directly to speech-webmcp-server
       if (url.pathname === '/api/speak' && request.method === 'POST') {
-        let body: { text?: string; voice?: string; personaVoice?: string } = {};
+        let body: { text?: string; voice?: string; personaVoice?: string; persona?: string } = {};
         try { body = await request.json(); } catch (e) {}
 
-        const text = body.text || "Welcome to Dondlinger General Contracting.";
-        const personaVoice = (body.voice || body.personaVoice || 'gideon').toLowerCase();
+        const webMcpUrl = 'https://speech-webmcp.dondlingergc.com/api/speak';
+        const mcpRes = await fetch(webMcpUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        }).catch(() => null);
 
-        const streamVoiceMap: Record<string, string> = {
-          gideon: 'Brian',
-          adam: 'Brian',
-          malachi: 'Russell',
-          santa_anna: 'Salli',
-          mercy: 'Joanna',
-          nicole: 'Kimberly'
-        };
-        const voiceName = streamVoiceMap[personaVoice] || 'Brian';
-
-        const ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${voiceName}&text=${encodeURIComponent(text)}`;
-        const ttsRes = await fetch(ttsUrl).catch(() => null);
-
-        if (ttsRes && ttsRes.ok) {
-          const audioBuffer = await ttsRes.arrayBuffer();
+        if (mcpRes && mcpRes.ok) {
+          const audioBuffer = await mcpRes.arrayBuffer();
           return new Response(audioBuffer, {
             status: 200,
             headers: {
               ...corsHeaders,
-              'Content-Type': 'audio/wav',
+              'Content-Type': 'audio/mp3',
               'Content-Length': audioBuffer.byteLength.toString()
             }
           });
