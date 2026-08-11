@@ -44,10 +44,10 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
             <Mic size={36} color="#ffffff" />
           </div>
           <h1 className="gradient-heading" style={{ fontSize: '2.2rem', marginBottom: '8px', fontWeight: 700 }}>
-            Dondlinger GC Voice Intake
+            Dondlinger GC Guided Intake
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5' }}>
-            Describe your general contracting, concrete, roofing, or construction project in plain English. No complicated forms—just tell us what you need built or repaired.
+            Interactive 3D Card Deck intake powered by pre-warmed voice guidance & instant PDF transcript generation.
           </p>
         </div>
 
@@ -77,54 +77,29 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="pulse-active"
-              style={{
-                padding: '16px',
-                borderRadius: '16px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.95rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 10px 25px rgba(99, 102, 241, 0.4)',
-                border: 'none',
-                cursor: isLoading ? 'wait' : 'pointer'
-              }}
-            >
-              <Mic size={20} />
-              {isLoading ? 'Connecting...' : 'Start Voice Call'}
-            </button>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              style={{
-                padding: '16px',
-                borderRadius: '16px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.18)',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.95rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                cursor: isLoading ? 'wait' : 'pointer',
-                transition: 'background 0.2s ease'
-              }}
-            >
-              <Sparkles size={20} color="#06b6d4" />
-              Text Intake
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="pulse-active"
+            style={{
+              padding: '18px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
+              color: '#ffffff',
+              fontWeight: 700,
+              fontSize: '1.05rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              boxShadow: '0 10px 25px rgba(99, 102, 241, 0.4)',
+              border: 'none',
+              cursor: isLoading ? 'wait' : 'pointer'
+            }}
+          >
+            <Sparkles size={22} color="#ffffff" />
+            {isLoading ? 'Initializing Engine...' : 'Launch 3D Card Deck Intake'}
+          </button>
         </form>
 
         <div style={{
@@ -136,13 +111,13 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
           fontSize: '0.8rem'
         }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Zap size={14} color="#06b6d4" /> Sub-200ms Latency
+            <Zap size={14} color="#10b981" /> Pre-Warmed WebAudio
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Shield size={14} color="#10b981" /> WebRTC Encrypted
+            <Shield size={14} color="#06b6d4" /> 3D Glass Deck
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sparkles size={14} color="#a5b4fc" /> Workers AI Edge
+            <Sparkles size={14} color="#a5b4fc" /> Instant PDF Download
           </span>
         </div>
       </div>
