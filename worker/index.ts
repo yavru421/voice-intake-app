@@ -24,26 +24,32 @@ export default {
         let body: { prompt?: string; personaVoice?: string } = {};
         try { body = await request.json(); } catch (e) {}
 
-        const userPrompt = body.prompt || "Hello, I am looking to start a new project.";
+        const userPrompt = body.prompt || "Hello, I am looking to get a contracting project estimated.";
         let aiReply = "";
+
+        const systemPrompt = `You are an AI Intake Specialist for Dondlinger General Contracting.
+Your job is to collect structured project data from potential clients in plain English for residential, commercial, concrete, roofing, or land development projects.
+
+STRICT RULES:
+1. Single-Topic Prompting: Ask only ONE question at a time to keep conversation simple and clear.
+2. Structured Intake Goals: Gather client name, contact info, site address, project scope, target timeline, and budget expectation.
+3. ABSOLUTELY NO SPECULATIVE OR BINDING QUOTES: Never give formal price estimates or cost commitments during intake. State that a Dondlinger GC field inspector will perform an on-site evaluation for formal scoping.
+4. Keep responses under 2 sentences. Warm, direct, professional.`;
 
         if (env && env.AI) {
           try {
             const aiResponse = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
               messages: [
-                {
-                  role: 'system',
-                  content: `You are a friendly Product Consultant for DondlingerGC. Talk like a helpful partner in plain English. Keep responses warm and concise (1-2 sentences).`
-                },
+                { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
               ]
             });
-            aiReply = aiResponse?.response || "Thank you for sharing that. What is your estimated budget or target launch timeline?";
+            aiReply = aiResponse?.response || "Thank you for describing that. What is the street address or location for this project?";
           } catch (aiErr) {
-            aiReply = "Thank you! What is your estimated budget or target launch timeline for this initiative?";
+            aiReply = "Thank you! What is the site address or project location so our field team can evaluate it?";
           }
         } else {
-          aiReply = "Thank you! What is your target budget or launch deadline for this implementation?";
+          aiReply = "Thank you! What is the site address or location of your project?";
         }
 
         return new Response(JSON.stringify({ reply: aiReply }), {
@@ -57,7 +63,7 @@ export default {
         let body: { text?: string; voice?: string; personaVoice?: string } = {};
         try { body = await request.json(); } catch (e) {}
 
-        const text = body.text || "Welcome to DondlingerGC.";
+        const text = body.text || "Welcome to Dondlinger General Contracting.";
         const personaVoice = (body.voice || body.personaVoice || 'gideon').toLowerCase();
 
         const streamVoiceMap: Record<string, string> = {
@@ -101,8 +107,8 @@ export default {
               INSERT INTO intake_summaries (id, session_id, project_scope, estimated_budget, timeline, key_requirements, action_items, raw_json)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `).bind(
-              `sum-${Date.now()}`,
-              data.sessionId || 'default-session',
+              `gc-${Date.now()}`,
+              data.sessionId || 'gc-session',
               data.projectScope || '',
               data.estimatedBudget || '',
               data.timeline || '',
@@ -113,7 +119,7 @@ export default {
           } catch (dbErr) {}
         }
 
-        return new Response(JSON.stringify({ success: true, message: 'Intake logged' }), {
+        return new Response(JSON.stringify({ success: true, message: 'General Contracting Intake logged successfully' }), {
           status: 200,
           headers: corsHeaders
         });
@@ -123,9 +129,9 @@ export default {
         return await env.ASSETS.fetch(request);
       }
 
-      return new Response("VoiceIntake Cloudflare Worker Active", { status: 200 });
+      return new Response("DondlingerGC VoiceIntake Cloudflare Worker Active", { status: 200 });
     } catch (err: any) {
-      return new Response(JSON.stringify({ reply: "Thank you. What is your estimated budget or timeline?" }), {
+      return new Response(JSON.stringify({ reply: "Thank you. What is the site address or project location?" }), {
         status: 200,
         headers: corsHeaders
       });

@@ -31,8 +31,8 @@ export function App() {
 
       if (source || name || company) {
         setClientInfo({
-          name: name || 'Valued Partner',
-          company: company || 'Enterprise Client',
+          name: name || 'Valued Client',
+          company: company || 'Property Owner',
           email: email || '',
           phone: params.get('phone') || '',
           personaVoice: 'gideon'
@@ -46,7 +46,7 @@ export function App() {
     setIsLoading(true);
     setConnectionState('connecting');
 
-    // Explicitly unlock browser SpeechSynthesis audio engine on user gesture
+    // Unlock browser SpeechSynthesis audio engine on user gesture
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel();
@@ -56,7 +56,7 @@ export function App() {
       } catch (e) {}
     }
 
-    // Start dialing ringtone sound
+    // Dial chime
     ringtoneSynth.startRinging();
 
     const analyzer = new AudioAnalyzer();
@@ -75,19 +75,17 @@ export function App() {
     voiceClientRef.current = voiceClient;
 
     try {
-      // Simulate realistic phone dialing delay before AI picks up line
-      await new Promise((resolve) => setTimeout(resolve, 1800));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       const stream = await voiceClient.requestMicrophone();
       analyzer.initialize(stream);
 
-      // Stop ringtone and play pickup chime
       ringtoneSynth.stopRinging();
       ringtoneSynth.playCallAnswerChime();
 
-      // Initial AI Opening Phone Greeting
+      // Initial Contracting Intake Opening Greeting
       const clientNameGreeting = client.name && client.name !== 'Valued Client' ? ` ${client.name}` : '';
-      const greetingText = `Welcome${clientNameGreeting}! This is DondlingerGC. We love helping people turn great ideas into real software. Tell me what you're dreaming up—what does your ideal app or tool do for you or your business?`;
+      const greetingText = `Hello${clientNameGreeting}! This is Dondlinger General Contracting. Tell us about your construction, concrete, or renovation project—what are you looking to build or repair?`;
       
       const greetingMsg: TranscriptMessage = {
         id: `ai-opening-${Date.now()}`,
@@ -100,7 +98,7 @@ export function App() {
       voiceClient.speakDirectly(greetingText, client.personaVoice || 'gideon');
     } catch (err) {
       ringtoneSynth.stopRinging();
-      console.error('Failed to start phone call session:', err);
+      console.error('Failed to start contracting voice session:', err);
     } finally {
       setIsLoading(false);
     }
@@ -135,23 +133,23 @@ export function App() {
     const fullText = transcripts.map((t) => t.text).join(' ');
 
     const generatedSummary: IntakeSummary = {
-      sessionId: `sess-${Math.random().toString(36).substring(2, 9)}`,
+      sessionId: `gc-${Math.random().toString(36).substring(2, 9)}`,
       clientInfo,
       projectScope: fullText.length > 30 
         ? fullText 
-        : `Client ${clientInfo.name} from ${clientInfo.company} requests an end-to-end digital transformation and custom WebRTC/AI software implementation.`,
-      estimatedBudget: fullText.toLowerCase().includes('budget') ? '$15,000 - $30,000' : '$25,000 USD',
-      timeline: fullText.toLowerCase().includes('timeline') ? '4 - 6 Weeks' : '30 Days to Launch',
+        : `Client ${clientInfo.name} from ${clientInfo.company} submitted a general contracting intake request for site assessment and scoping.`,
+      estimatedBudget: fullText.toLowerCase().includes('budget') ? 'Pending Preliminary Inspection' : 'Preliminary Estimate TBD',
+      timeline: fullText.toLowerCase().includes('timeline') ? 'Client Preferred Target Schedule' : '30-60 Days',
       keyRequirements: [
-        'High-aesthetics WebRTC PWA phone interface with real-time feedback',
-        'Cloudflare Workers AI edge backend integration (Llama-3 model)',
-        'Cloudflare D1 identity & transcript storage schema',
-        'Sub-200ms latency audio stream processing & PDF export capability'
+        'Site inspection & structural feasibility assessment',
+        'Structured project scope data collection (client, site, timeline)',
+        'Dondlinger GC field estimator dispatch & preliminary scope verification',
+        'No binding binding quotes until live physical site walk'
       ],
       actionItems: [
-        'Schedule technical architecture review call with core team',
-        'Provision Cloudflare D1 production database & API tokens',
-        'Review final scoping PDF with client for sign-off'
+        'Schedule physical site walk-through with Dondlinger GC field inspector',
+        'Log structured JSON lead into Dondlinger GC telemetry data lake',
+        'Send automated client intake confirmation summary'
       ],
       generatedAt: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString()
     };
@@ -170,7 +168,6 @@ export function App() {
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '40px' }}>
-      {/* Header Bar */}
       <header style={{
         padding: '16px 32px',
         display: 'flex',
@@ -193,22 +190,21 @@ export function App() {
               boxShadow: '0 0 10px #06b6d4'
             }} />
             <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem', letterSpacing: '-0.02em' }}>
-              VoiceIntake<span style={{ color: '#06b6d4' }}>.AI</span>
+              DondlingerGC<span style={{ color: '#06b6d4' }}>.VoiceIntake</span>
             </span>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Cpu size={16} color="#06b6d4" /> Kokoro ONNX Edge Stream
+            <Cpu size={16} color="#06b6d4" /> Kokoro ONNX Audio Stream
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Shield size={16} color="#10b981" /> WebAudio Stream
+            <Shield size={16} color="#10b981" /> Direct WebAudio Pipeline
           </span>
         </div>
       </header>
 
-      {/* Main View Router */}
       <main>
         {!clientInfo || connectionState === 'idle' ? (
           <MicPermissionCard onStartSession={handleStartSession} isLoading={isLoading} />
@@ -226,7 +222,6 @@ export function App() {
           />
         )}
 
-        {/* Summary Modal */}
         {isModalOpen && summary && (
           <IntakeSummaryModal summary={summary} onClose={() => setIsModalOpen(false)} />
         )}

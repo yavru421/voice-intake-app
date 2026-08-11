@@ -10,7 +10,6 @@ interface MicPermissionCardProps {
 export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSession, isLoading }) => {
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
-  const [personaVoice, setPersonaVoice] = useState('gideon');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,8 +18,8 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
 
     onStartSession({
       name: name || 'Valued Client',
-      company: company || 'Client Organization',
-      email: `${(name || 'client').toLowerCase().replace(/\s+/g, '.')}@${(company || 'company').toLowerCase().replace(/\s+/g, '')}.com`,
+      company: company || 'Property Owner / Business',
+      email: `${(name || 'client').toLowerCase().replace(/\s+/g, '.')}@${(company || 'property').toLowerCase().replace(/\s+/g, '')}.com`,
       phone: '+1 (555) 000-0000',
       buyerType: 'client',
       personaVoice: randomPersona
@@ -45,17 +44,17 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
             <Mic size={36} color="#ffffff" />
           </div>
           <h1 className="gradient-heading" style={{ fontSize: '2.2rem', marginBottom: '8px', fontWeight: 700 }}>
-            Bring Your Idea To Life
+            Dondlinger GC Voice Intake
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5' }}>
-            Have a vision for an app, business tool, or digital platform? You don't need technical specs or code details—just talk to us in plain English. We'll help turn your idea into reality.
+            Describe your general contracting, concrete, roofing, or construction project in plain English. No complicated forms—just tell us what you need built or repaired.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div>
             <label htmlFor="client-name" style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '6px' }}>
-              Your Name (Optional)
+              Your Name / Business (Optional)
             </label>
             <div style={{ position: 'relative' }}>
               <User size={18} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '14px' }} />
@@ -64,7 +63,7 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Sarah Jenkins"
+                placeholder="e.g. John Dondlinger / Apex Properties"
                 style={{
                   width: '100%',
                   padding: '12px 14px 12px 42px',
@@ -77,8 +76,6 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
               />
             </div>
           </div>
-
-
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
             <button
@@ -102,7 +99,7 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
               }}
             >
               <Mic size={20} />
-              {isLoading ? 'Connecting...' : 'Record Voice'}
+              {isLoading ? 'Connecting...' : 'Start Voice Call'}
             </button>
 
             <button
@@ -125,7 +122,7 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
               }}
             >
               <Sparkles size={20} color="#06b6d4" />
-              Type & Submit
+              Text Intake
             </button>
           </div>
         </form>
@@ -145,7 +142,7 @@ export const MicPermissionCard: React.FC<MicPermissionCardProps> = ({ onStartSes
             <Shield size={14} color="#10b981" /> WebRTC Encrypted
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sparkles size={14} color="#a5b4fc" /> Workers AI
+            <Sparkles size={14} color="#a5b4fc" /> Workers AI Edge
           </span>
         </div>
       </div>
