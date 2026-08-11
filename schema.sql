@@ -37,3 +37,14 @@ CREATE TABLE IF NOT EXISTS intake_summaries (
     raw_json TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS voice_response_cache (
+    prompt_hash TEXT PRIMARY KEY,
+    prompt_norm TEXT NOT NULL,
+    response_text TEXT NOT NULL,
+    persona_voice TEXT NOT NULL DEFAULT 'gideon',
+    hit_count INTEGER DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

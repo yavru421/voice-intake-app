@@ -44,7 +44,11 @@ export class ClientWebAssemblyVoiceEngine {
     const res = await this.synthesizeToAudio(text, voiceName, speed);
     if (res.audioUrl) {
       const player = new Audio(res.audioUrl);
-      await player.play();
+      await new Promise<void>((resolve, reject) => {
+        player.onended = () => resolve();
+        player.onerror = (e) => reject(e);
+        player.play().catch(reject);
+      });
       return true;
     }
     return false;

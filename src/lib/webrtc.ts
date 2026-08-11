@@ -95,16 +95,50 @@ export class WebRTCVoiceClient {
         }
       }
     };
+  }
 
-    this.recognition.start();
+  public startListening(): void {
+    if (this.hasSpeechRecognition && this.recognition) {
+      try {
+        this.options.onStateChange('listening');
+        this.recognition.start();
+      } catch (e) {
+        console.warn('Speech recognition start error:', e);
+      }
+    } else {
+      this.options.onStateChange('listening');
+    }
   }
 
   public speakDirectly(text: string, personaVoice: string = 'gideon'): void {
     this.speakText(text, personaVoice);
   }
 
-  public async sendToWorkerAI(userPrompt: string, personaVoice: string = 'gideon', skipUserTranscript: boolean = false): Promise<void> {
+  public async speakPreloadedOrDirect(text: string, preloadedBlob: Blob | null, personaVoice: string = 'gideon'): Promise<void> {
     this.options.onStateChange('speaking');
+    if (preloadedBlob) {
+      try {
+        const audioUrl = URL.createObjectURL(preloadedBlob);
+        const player = new Audio(audioUrl);
+        await new Promise<void>((resolve, reject) => {
+          player.onended = () => {
+            this.options.onStateChange('listening');
+            resolve();
+          };
+          player.onerror = (e) => reject(e);
+          player.play().catch(reject);
+        });
+        return;
+      } catch (e) {
+        console.warn('Failed playing preloaded audio blob, falling back:', e);
+      }
+    }
+    await this.speakText(text, personaVoice);
+    this.options.onStateChange('listening');
+  }
+
+  public async sendToWorkerAI(userPrompt: string, personaVoice: string = 'gideon', skipUserTranscript: boolean = false): Promise<void> {
+    this.options.onStateChange('processing');
     
     if (!skipUserTranscript) {
       const userMsg: TranscriptMessage = {
@@ -187,7 +221,11 @@ export class WebRTCVoiceClient {
       if (audioBlob) {
         const audioUrl = URL.createObjectURL(audioBlob);
         const player = new Audio(audioUrl);
-        await player.play();
+        await new Promise<void>((resolve, reject) => {
+          player.onended = () => resolve();
+          player.onerror = (e) => reject(e);
+          player.play().catch(reject);
+        });
         return;
       }
     } catch (e) {
@@ -241,7 +279,11 @@ export class WebRTCVoiceClient {
           }
         }
 
-        this.synthesis.speak(utterance);
+        await new Promise<void>((resolve) => {
+          utterance.onend = () => resolve();
+          utterance.onerror = () => resolve();
+          this.synthesis!.speak(utterance);
+        });
       } catch (e) {
         console.warn('SpeechSynthesis execution warning:', e);
       }

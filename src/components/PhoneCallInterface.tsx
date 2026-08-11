@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PhoneCall, PhoneOff, Mic, MicOff, Volume2, Sparkles, FileText } from 'lucide-react';
+import { PhoneCall, PhoneOff, Mic, MicOff, Volume2, Sparkles, FileText, Voicemail } from 'lucide-react';
 import { ClientInfo, TranscriptMessage } from '../types/intake';
 import { AudioVisualizer } from './AudioVisualizer';
 import { TranscriptView } from './TranscriptView';
@@ -29,6 +29,62 @@ export const PhoneCallInterface: React.FC<PhoneCallInterfaceProps> = ({
   onSendMessage
 }) => {
   const [callDuration, setCallDuration] = useState(0);
+  const [isRecordingVoicemail, setIsRecordingVoicemail] = useState(false);
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const audioChunksRef = React.useRef<Blob[]>([]);
+
+  const handleVoicemailToggle = async () => {
+    if (isRecordingVoicemail) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecordingVoicemail(false);
+    } else {
+      if (navigator.mediaDevices) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const mediaRecorder = new MediaRecorder(stream);
+          mediaRecorderRef.current = mediaRecorder;
+          audioChunksRef.current = [];
+          
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunksRef.current.push(e.data);
+          };
+          
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            stream.getTracks().forEach(t => t.stop());
+            
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'voicemail.webm');
+            formData.append('sessionId', clientInfo.name || 'client');
+            
+            try {
+              const response = await fetch('/api/voicemail', {
+                method: 'POST',
+                body: formData
+              });
+              const resJson = await response.json();
+              if (resJson.success) {
+                alert('Voicemail securely sent to Dondlinger GC!');
+              } else {
+                alert('Failed to send voicemail.');
+              }
+            } catch (err) {
+              console.error('Voicemail upload failed:', err);
+              alert('Error uploading voicemail.');
+            }
+          };
+          
+          mediaRecorder.start();
+          setIsRecordingVoicemail(true);
+        } catch (err) {
+          console.error("Mic access denied", err);
+          alert("Microphone access is required to leave a voicemail.");
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     let timer: any = null;
@@ -172,6 +228,27 @@ export const PhoneCallInterface: React.FC<PhoneCallInterfaceProps> = ({
             title="Speaker Active"
           >
             <Volume2 size={22} color="#38bdf8" />
+          </button>
+
+          {/* Voicemail Button */}
+          <button
+            onClick={handleVoicemailToggle}
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: isRecordingVoicemail ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+              border: isRecordingVoicemail ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.15)',
+              color: isRecordingVoicemail ? '#f87171' : '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            title={isRecordingVoicemail ? 'Stop Recording Voicemail' : 'Leave Voicemail'}
+          >
+            <Voicemail size={22} />
           </button>
 
           {/* End Call Button */}
