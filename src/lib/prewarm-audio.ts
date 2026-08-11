@@ -21,11 +21,10 @@ class PreWarmedAudioEngine {
     if (this.cache.has(stepId)) return; // Already cached!
 
     try {
-      // 1. Try fetching from Cloudflare Edge TTS worker endpoint
-      const res = await fetch('/api/speak', {
+      const res = await fetch('https://speech-webmcp.dondlingergc.com/api/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: promptText, personaVoice })
+        body: JSON.stringify({ text: promptText, persona: personaVoice })
       });
 
       if (res.ok) {
@@ -37,15 +36,21 @@ class PreWarmedAudioEngine {
         return;
       }
     } catch (e) {
-      console.warn(`Pre-warm fetch failed for step ${stepId}, using Web Speech Synthesis fallback`, e);
+      console.warn(`Pre-warm fetch failed for step ${stepId}:`, e);
     }
   }
 
-  // Play cached step audio with zero latency
+  // Play cached step audio with zero latency (strictly high quality studio audio)
   async playStepAudio(stepId: number, fallbackText: string, onEnd?: () => void): Promise<void> {
     this.stopCurrent();
 
-    const cachedBuffer = this.cache.get(stepId);
+    let cachedBuffer = this.cache.get(stepId);
+    if (!cachedBuffer) {
+      // Direct fetch if not yet in cache
+      await this.prewarmStep(stepId, fallbackText);
+      cachedBuffer = this.cache.get(stepId);
+    }
+
     if (cachedBuffer) {
       try {
         const ctx = this.getContext();
@@ -60,18 +65,8 @@ class PreWarmedAudioEngine {
         source.start(0);
         return;
       } catch (err) {
-        console.warn('WebAudio playback failed, dropping back to SpeechSynthesis', err);
+        console.warn('WebAudio playback failed:', err);
       }
-    }
-
-    // Fallback: Browser SpeechSynthesis
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(fallbackText);
-      utterance.rate = 1.05;
-      utterance.onend = () => { if (onEnd) onEnd(); };
-      utterance.onerror = () => { if (onEnd) onEnd(); };
-      window.speechSynthesis.speak(utterance);
     }
   }
 
